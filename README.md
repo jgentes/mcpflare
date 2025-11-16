@@ -228,11 +228,16 @@ Enter the MCP ID to clean up resources.
 
 | Command | Description |
 |---------|-------------|
-| `load` | Load an MCP server into an isolated Worker |
+| `load` | Load an MCP server into an isolated Worker (auto-saves configuration) |
+| `save` | Save MCP configuration for later use |
+| `delete` | Delete a saved MCP configuration |
+| `test` | Interactively test MCP tools (select tool, enter args, execute) |
 | `execute` | Execute TypeScript code against a loaded MCP |
 | `list` | List all loaded MCP servers |
+| `saved` | List all saved MCP configurations |
 | `schema` | Get TypeScript API schema for an MCP |
 | `unload` | Unload an MCP server and clean up |
+| `conflicts` | Check for IDE MCP configuration conflicts |
 | `metrics` | Show performance metrics |
 | `help` | Show help message |
 | `exit` | Exit the CLI |
@@ -404,7 +409,7 @@ mcp-isolate-runner/
 │   ├── types/           # TypeScript type definitions
 │   └── utils/           # Utilities (logger, validation, etc.)
 ├── examples/            # Example configurations
-├── tests/              # Test suites (to be implemented)
+├── tests/              # Test suites (unit, integration, security)
 ├── dist/               # Compiled JavaScript (after build)
 └── package.json        # Project configuration
 ```
@@ -418,19 +423,22 @@ mcp-isolate-runner/
 
 ## 📄 Documentation
 
-- **`README_IMPLEMENTATION.md`** - Complete implementation guide and architecture
-- **`PROJECT_SPEC.md`** - Full project specification
-- **`QUICK_START.md`** - Development checklist
+- **`README_IMPLEMENTATION.md`** - Implementation summary and overview
+- **`PROJECT_SPEC.md`** - Full project specification and architecture
 - **`IMPLEMENTATION_STATUS.md`** - Current implementation status
+- **`ARCHITECTURE_DIAGRAMS.md`** - Visual architecture documentation
+- **`TESTING_GUIDE.md`** - Step-by-step testing guide
+- **`SECURITY_ANALYSIS.md`** - Security benefits and attack vector analysis
 
 ## 🤝 Contributing
 
-Contributions are welcome! Areas that need work:
+Contributions are welcome! Areas that could be enhanced:
 
 - Real MCP protocol communication (replace mocked schema fetching)
 - Real Worker Loader API integration (replace simulated execution)
-- Unit and integration tests
 - Additional MCP server examples
+- Performance optimizations
+- Enhanced security features
 
 ## 📜 License
 
