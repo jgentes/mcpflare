@@ -1,0 +1,55 @@
+{
+  "name": "mcp-isolate-runner",
+  "version": "0.1.0",
+  "description": "Enterprise-grade MCP server providing secure, isolated execution using Cloudflare Workers",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "types": "dist/server/index.d.ts",
+  "bin": {
+    "mcp-isolate": "dist/cli/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/server/index.ts",
+    "cli": "tsx src/cli/index.ts",
+    "build": "tsc",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:security": "vitest run tests/security",
+    "lint": "eslint src --ext ts",
+    "format": "prettier --write 'src/**/*.ts'",
+    "worker:dev": "npx wrangler dev",
+    "benchmark": "tsx benchmarks/github-comparison.ts",
+    "test:mcp": "tsx scripts/test-mcp-directly.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "cloudflare-workers",
+    "isolate",
+    "security",
+    "code-mode"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "agents": "^0.2.23",
+    "dotenv": "^16.3.1",
+    "jsonc-parser": "^3.3.1",
+    "pino": "^8.16.2",
+    "pino-pretty": "^10.2.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4",
+    "wrangler": "^4.47.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

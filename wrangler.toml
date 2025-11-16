@@ -1,0 +1,10 @@
+name = "mcp-isolate-runner"
+main = "src/worker/runtime.ts"
+compatibility_date = "2025-06-01"
+
+[env.development]
+workers_dev = true
+
+[[worker_loaders]]
+binding = "LOADER"
+
