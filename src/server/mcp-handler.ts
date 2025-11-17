@@ -25,7 +25,7 @@ export class MCPHandler {
   constructor() {
     this.server = new Server(
       {
-        name: 'mcp-isolate-runner',
+        name: 'mcpguard',
         version: '0.1.0',
       },
       {
@@ -1068,7 +1068,7 @@ console.log(JSON.stringify(result, null, 2));`
     const transport = new StdioServerTransport()
     await this.server.connect(transport)
 
-    logger.info('MCP Isolate Runner server started')
+    logger.info('MCP Guard server started')
 
     // Graceful shutdown
     process.on('SIGINT', async () => {

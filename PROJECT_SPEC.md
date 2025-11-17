@@ -1,8 +1,8 @@
-# MCP Isolate Runner - Project Specification
+# MCP Guard - Project Specification
 
 ## Executive Summary
 
-MCP Isolate Runner is an enterprise-grade MCP server that provides secure, isolated execution of other MCP servers using Cloudflare Workers' isolate technology and code mode execution. This solution addresses critical security and efficiency challenges in AI agent workflows.
+MCP Guard is an enterprise-grade MCP server that provides secure, isolated execution of other MCP servers using Cloudflare Workers' isolate technology and code mode execution. This solution addresses critical security and efficiency challenges in AI agent workflows.
 
 ## Problem Statement
 
@@ -16,7 +16,7 @@ Current MCP implementations face several challenges:
 
 ## Solution Overview
 
-MCP Isolate Runner is a meta-MCP server that:
+MCP Guard is a meta-MCP server that:
 
 - Loads target MCP servers into disposable Cloudflare Workers isolates
 - Converts MCP tool schemas to TypeScript APIs for code mode execution
@@ -35,7 +35,7 @@ MCP Isolate Runner is a meta-MCP server that:
                             │ MCP Protocol
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              MCP Isolate Runner (Meta-MCP Server)            │
+│              MCP Guard (Meta-MCP Server)            │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  MCP Protocol Handler                                │   │
 │  │  - load_mcp_server                                   │   │
@@ -451,7 +451,7 @@ MCP Isolate Runner is a meta-MCP server that:
 ### Repository Structure
 
 ```
-mcp-isolate-runner/
+mcpguard/
 ├── src/
 │   ├── server/          # Meta-MCP server implementation
 │   ├── worker/          # Worker isolate runtime

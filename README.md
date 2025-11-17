@@ -1,4 +1,4 @@
-# MCP Isolate Runner
+# MCP Guard
 
 > **Enterprise-grade MCP server** that provides secure, isolated execution of Model Context Protocol servers using Cloudflare Workers isolates and code mode execution.
 
@@ -8,7 +8,7 @@
 
 ## 🚀 What is This?
 
-MCP Isolate Runner is a **meta-MCP server** that revolutionizes how AI agents interact with MCP tools:
+MCP Guard is a **meta-MCP server** that revolutionizes how AI agents interact with MCP tools:
 
 - **🔒 Secure Isolation**: Each MCP runs in a disposable Cloudflare Workers isolate with network isolation
 - **⚡ Code Mode Execution**: Converts MCP tools to TypeScript APIs, enabling AI agents to write code instead of making individual tool calls
@@ -17,7 +17,7 @@ MCP Isolate Runner is a **meta-MCP server** that revolutionizes how AI agents in
 
 ## ⚡ Efficiency: Why Code Mode Matters
 
-Traditional MCP tool calling wastes your context window. MCP Isolate Runner uses code mode to reduce token usage by 50-90%, giving your AI more room to work.
+Traditional MCP tool calling wastes your context window. MCP Guard uses code mode to reduce token usage by 50-90%, giving your AI more room to work.
 
 ### The Problem with Traditional Tool Calling
 
@@ -46,12 +46,12 @@ AI → reads entire transcript
 Total: 20,000 (tools) + 10,000 (result) + 10,000 (copied) = 40,000 tokens
 ```
 
-### How MCP Isolate Runner Improves This
+### How MCP Guard Improves This
 
-With **MCP Isolate Runner**, the AI loads only what it needs and processes data in the isolate:
+With **MCP Guard**, the AI loads only what it needs and processes data in the isolate:
 
 ```typescript
-// MCP Isolate Runner approach
+// MCP Guard approach
 AI → lists available MCPs
     → loads only google-drive and salesforce tools (500 tokens)
     → writes and executes code:
@@ -80,7 +80,7 @@ Total: 500 (2 tools loaded) + 20 (result) = 520 tokens
 
 ### Efficiency Comparison: 10 MCPs Loaded
 
-| Scenario | Traditional | MCP Isolate Runner | Savings |
+| Scenario | Traditional | MCP Guard | Savings |
 |----------|------------|-------------------|---------|
 | **Tool Definitions** | 20,000 tokens | 500 tokens | **98%** |
 | **Simple Task** | 21,500 tokens | 520 tokens | **98%** |
@@ -97,7 +97,7 @@ Total: 500 (2 tools loaded) + 20 (result) = 520 tokens
 = ~4 complex tasks before running out
 ```
 
-#### MCP Isolate Runner Approach  
+#### MCP Guard Approach  
 ```
 200K total context
 - Tool definitions: 0K (loaded on-demand)
@@ -117,7 +117,7 @@ Total: 500 (2 tools loaded) + 20 (result) = 520 tokens
 
 ### The Bottom Line
 
-**MCP Isolate Runner makes MCP usage efficient:**
+**MCP Guard makes MCP usage efficient:**
 
 - 📉 **98% reduction** in token usage for typical tasks
 - 🚀 **60x more tasks** in same context window  
@@ -136,7 +136,7 @@ Your AI coding assistant can:
 
 ## 🔒 Security: Why Isolates Matter
 
-Running AI-generated code is inherently risky. MCP Isolate Runner uses Cloudflare Workers isolates to create a zero-trust execution environment where even malicious code can't escape the sandbox.
+Running AI-generated code is inherently risky. MCP Guard uses Cloudflare Workers isolates to create a zero-trust execution environment where even malicious code can't escape the sandbox.
 
 ### The Problem with Traditional MCP Execution
 
@@ -158,9 +158,9 @@ const secrets = require('fs').readFileSync('.env', 'utf8');
 require('child_process').exec('rm -rf /');
 ```
 
-### How MCP Isolate Runner Protects You
+### How MCP Guard Protects You
 
-**MCP Isolate Runner** runs all code in isolated Workers with three layers of security:
+**MCP Guard** runs all code in isolated Workers with three layers of security:
 
 #### 1. **V8 Isolate Sandboxing**
 - Each execution runs in a completely isolated V8 isolate
@@ -211,7 +211,7 @@ Before you begin, make sure you have:
 
 1. Go to [GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)](https://github.com/settings/tokens)
 2. Click "Generate new token (classic)"
-3. Give it a name like "MCP Isolate Runner Test"
+3. Give it a name like "MCP Guard Test"
 4. Select scopes: `repo` (for repository access)
 5. Click "Generate token"
 6. **Copy the token** (you won't see it again!)
@@ -274,13 +274,13 @@ You'll see a prompt like this:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║         MCP Isolate Runner - Interactive CLI              ║
+║              MCP Guard - Interactive CLI                  ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.
 Type "exit" to quit.
 
-mcp-isolate>
+mcpguard>
 ```
 
 ## 🧪 Testing with GitHub MCP
@@ -295,7 +295,7 @@ npm run cli
 
 ### 2. Load the GitHub MCP Server
 
-At the `mcp-isolate>` prompt, type:
+At the `mcpguard>` prompt, type:
 
 ```
 load
@@ -311,7 +311,7 @@ You'll be prompted for information. Enter:
 **Example interaction:**
 
 ```
-mcp-isolate> load
+mcpguard> load
 MCP name: github
 Command (e.g., npx): npx
 Args (comma-separated, or press Enter for none): -y,@modelcontextprotocol/server-github
@@ -472,9 +472,9 @@ The server will start and listen for MCP protocol connections via stdio.
 ```json
 {
   "mcpServers": {
-    "isolate-runner": {
-      "command": "node",
-      "args": ["/path/to/mcp-isolate-runner/dist/server/index.js"]
+      "mcpguard": {
+        "command": "node",
+        "args": ["/path/to/mcpguard/dist/server/index.js"]
     }
   }
 }
@@ -485,9 +485,9 @@ The server will start and listen for MCP protocol connections via stdio.
 ```json
 {
   "mcpServers": {
-    "isolate-runner": {
-      "command": "node",
-      "args": ["/path/to/mcp-isolate-runner/dist/server/index.js"]
+      "mcpguard": {
+        "command": "node",
+        "args": ["/path/to/mcpguard/dist/server/index.js"]
     }
   }
 }
@@ -524,7 +524,7 @@ These limitations are clearly marked in the code and will be implemented in futu
 
 ## 🔒 Security Features
 
-MCP Isolate Runner provides defense-in-depth security through multiple layers:
+MCP Guard provides defense-in-depth security through multiple layers:
 
 ### Security Layers
 
@@ -607,7 +607,7 @@ Check that:
 ## 📚 Project Structure
 
 ```
-mcp-isolate-runner/
+mcpguard/
 ├── src/
 │   ├── server/          # MCP server implementation
 │   ├── worker/          # Worker isolate runtime

@@ -2,7 +2,7 @@
 
 ## ✅ Implementation Complete
 
-The MCP Isolate Runner is **fully implemented and functional**. All core features are working, and the project has comprehensive test coverage.
+MCP Guard is **fully implemented and functional**. All core features are working, and the project has comprehensive test coverage.
 
 ## ✅ Completed Components
 

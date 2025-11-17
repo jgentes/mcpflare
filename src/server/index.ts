@@ -9,14 +9,14 @@ dotenv.config()
 
 async function main() {
   try {
-    logger.info('Starting MCP Isolate Runner...')
+    logger.info('Starting MCP Guard...')
 
     const handler = new MCPHandler()
     await handler.start()
 
-    logger.info('MCP Isolate Runner is ready to accept connections')
+    logger.info('MCP Guard is ready to accept connections')
   } catch (error: unknown) {
-    logger.error({ error }, 'Failed to start MCP Isolate Runner')
+    logger.error({ error }, 'Failed to start MCP Guard')
     process.exit(1)
   }
 }

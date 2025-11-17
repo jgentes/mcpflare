@@ -1,4 +1,4 @@
-name = "mcp-isolate-runner"
+name = "mcpguard"
 main = "src/worker/runtime.ts"
 compatibility_date = "2025-06-01"
 

@@ -1,6 +1,6 @@
 # Testing Guide - GitHub MCP Example
 
-This guide walks you through testing MCP Isolate Runner with the GitHub MCP server step-by-step.
+This guide walks you through testing MCP Guard with the GitHub MCP server step-by-step.
 
 ## Prerequisites Checklist
 
@@ -48,13 +48,13 @@ You should see:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║         MCP Isolate Runner - Interactive CLI              ║
+║              MCP Guard - Interactive CLI                  ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.
 Type "exit" to quit.
 
-mcp-isolate>
+mcpguard>
 ```
 
 ### 3. Load GitHub MCP
@@ -62,7 +62,7 @@ mcp-isolate>
 At the prompt, type `load` and follow the prompts:
 
 ```
-mcp-isolate> load
+mcpguard> load
 MCP name: github
 Command (e.g., npx): npx
 Args (comma-separated, or press Enter for none): -y,@modelcontextprotocol/server-github
@@ -97,7 +97,7 @@ Loading MCP server...
 Type `list`:
 
 ```
-mcp-isolate> list
+mcpguard> list
 
 📋 Loaded MCP Servers:
 {
@@ -117,7 +117,7 @@ mcp-isolate> list
 Type `schema`:
 
 ```
-mcp-isolate> schema
+mcpguard> schema
 MCP ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 
@@ -128,7 +128,7 @@ You'll see the generated TypeScript API definitions that show how to use the MCP
 Type `execute`:
 
 ```
-mcp-isolate> execute
+mcpguard> execute
 MCP ID: 550e8400-e29b-41d4-a716-446655440000
 Enter TypeScript code (end with a blank line):
 console.log('Hello from Worker isolate!');
@@ -158,7 +158,7 @@ Executing code...
 Try executing code that uses the MCP API:
 
 ```
-mcp-isolate> execute
+mcpguard> execute
 MCP ID: 550e8400-e29b-41d4-a716-446655440000
 Enter TypeScript code (end with a blank line):
 // Search for repositories
@@ -175,7 +175,7 @@ Timeout (ms, default 30000): [Press Enter]
 Type `metrics`:
 
 ```
-mcp-isolate> metrics
+mcpguard> metrics
 
 📊 Metrics:
 {
@@ -201,7 +201,7 @@ mcp-isolate> metrics
 When done testing, unload the MCP:
 
 ```
-mcp-isolate> unload
+mcpguard> unload
 MCP ID to unload: 550e8400-e29b-41d4-a716-446655440000
 
 ✅ MCP server 550e8400-e29b-41d4-a716-446655440000 unloaded successfully.
@@ -212,7 +212,7 @@ MCP ID to unload: 550e8400-e29b-41d4-a716-446655440000
 Type `exit`:
 
 ```
-mcp-isolate> exit
+mcpguard> exit
 
 👋 Goodbye!
 ```

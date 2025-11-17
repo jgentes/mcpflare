@@ -1,12 +1,12 @@
 {
-  "name": "mcp-isolate-runner",
+  "name": "mcpguard",
   "version": "0.1.0",
   "description": "Enterprise-grade MCP server providing secure, isolated execution using Cloudflare Workers",
   "type": "module",
   "main": "dist/server/index.js",
   "types": "dist/server/index.d.ts",
   "bin": {
-    "mcp-isolate": "dist/cli/index.js"
+    "mcpguard": "dist/cli/index.js"
   },
   "scripts": {
     "dev": "tsx src/server/index.ts",

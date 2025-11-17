@@ -7,7 +7,7 @@ Based on the architecture from https://blog.cloudflare.com/code-mode/ and Cloudf
 
 ## Executive Summary
 
-The **boxr** (or chosen name) architecture provides defense-in-depth security by combining:
+The **MCP Guard** architecture provides defense-in-depth security by combining:
 1. **V8 Isolate sandboxing** - OS-level process isolation
 2. **Network isolation** (`globalOutbound: null`) - Complete network lockdown
 3. **Binding-based access control** - Explicit, scoped permissions
@@ -479,7 +479,7 @@ Stack traces and error messages might reveal system information.
 | Resource exhaustion | ⚠️ Limited |
 | SSRF | ❌ None |
 
-### Code Mode + Workers Isolates (boxr)
+### Code Mode + Workers Isolates (MCP Guard)
 | Attack Vector | Protection Level |
 |--------------|------------------|
 | Network exfiltration | ✅ **Complete** |
@@ -582,4 +582,4 @@ The key insight: **Even if malicious code is generated and executed, it can't es
 
 ---
 
-**This is why enterprises should use boxr for MCP execution.** 🔒
+**This is why enterprises should use MCP Guard for MCP execution.** 🔒

@@ -1,12 +1,12 @@
 # Environment Variable Setup Guide
 
-This document explains how the improved environment variable setup process works in mcp-isolate.
+This document explains how the improved environment variable setup process works in mcpguard.
 
 ## Overview
 
 The setup process now includes:
 1. **Interactive Environment Variable Selector** - Select env vars from `.env` file with typeahead/search
-2. **IDE MCP Conflict Detection** - Warnings when MCPs are configured in both IDE and mcp-isolate
+2. **IDE MCP Conflict Detection** - Warnings when MCPs are configured in both IDE and mcpguard
 
 ## Interactive Environment Variable Selection
 
@@ -59,14 +59,14 @@ When you load an MCP that's already configured in your IDE (Cursor, Claude Code,
 
 ```
 ⚠️  Warning: An MCP named "github" already exists in your Cursor configuration.
-   If you're using mcp-isolate, consider disabling "github" in your IDE's MCP settings
-   to avoid confusion. The IDE will use the real MCP, while mcp-isolate uses the sandboxed version.
+   If you're using mcpguard, consider disabling "github" in your IDE's MCP settings
+   to avoid confusion. The IDE will use the real MCP, while mcpguard uses the sandboxed version.
 ```
 
 ### Why This Matters
 
 - **IDE MCPs** run directly in your IDE and have full access to your system
-- **mcp-isolate MCPs** run in isolated Cloudflare Workers with no network access
+- **mcpguard MCPs** run in isolated Cloudflare Workers with no network access
 - Having both can be confusing - the LLM might not know which one to use
 
 ### Checking for Conflicts
@@ -74,13 +74,13 @@ When you load an MCP that's already configured in your IDE (Cursor, Claude Code,
 Use the `conflicts` command to check for potential conflicts:
 
 ```
-mcp-isolate> conflicts
+mcpguard> conflicts
 
 🔍 Checking for potential IDE MCP conflicts (Cursor):
 
-⚠️  "github" is configured in both your IDE and mcp-isolate
+⚠️  "github" is configured in both your IDE and mcpguard
    Recommendation: Disable "github" in your IDE's MCP settings
-   to avoid confusion. The IDE will use the real MCP, while mcp-isolate
+   to avoid confusion. The IDE will use the real MCP, while mcpguard
    uses the sandboxed version.
 
 💡 Tip: To disable an MCP in your IDE:
@@ -91,9 +91,9 @@ mcp-isolate> conflicts
 
 ### Recommended Approach
 
-1. **For development/testing**: Use mcp-isolate (sandboxed, safe)
+1. **For development/testing**: Use mcpguard (sandboxed, safe)
 2. **For production IDE use**: Use direct IDE MCP configuration
-3. **Avoid both**: Disable the MCP in your IDE when using mcp-isolate
+3. **Avoid both**: Disable the MCP in your IDE when using mcpguard
 
 ## Environment Variable Syntax
 

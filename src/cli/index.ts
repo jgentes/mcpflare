@@ -28,7 +28,7 @@ if (verbose) {
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  prompt: 'mcp-isolate> ',
+  prompt: 'mcpguard> ',
 })
 
 const workerManager = new WorkerManager()
@@ -125,10 +125,10 @@ async function loadMCP() {
         `\n⚠️  Warning: An MCP named "${mcpName}" already exists in your ${sourceName} configuration.`,
       )
       console.log(
-        `   If you're using mcp-isolate, consider disabling "${mcpName}" in your IDE's MCP settings`,
+        `   If you're using mcpguard, consider disabling "${mcpName}" in your IDE's MCP settings`,
       )
       console.log(
-        `   to avoid confusion. The IDE will use the real MCP, while mcp-isolate uses the sandboxed version.`,
+        `   to avoid confusion. The IDE will use the real MCP, while mcpguard uses the sandboxed version.`,
       )
       const proceed = await question('\nContinue anyway? (y/N): ')
       if (proceed.trim().toLowerCase() !== 'y') {
@@ -955,18 +955,18 @@ async function checkIDEConflicts() {
     if (conflict.inIDE && conflict.inIsolate) {
       hasConflicts = true
       console.log(
-        `⚠️  "${conflict.name}" is configured in both your IDE and mcp-isolate`,
+        `⚠️  "${conflict.name}" is configured in both your IDE and mcpguard`,
       )
       console.log(
         `   Recommendation: Disable "${conflict.name}" in your IDE's MCP settings`,
       )
       console.log(
-        `   to avoid confusion. The IDE will use the real MCP, while mcp-isolate`,
+        `   to avoid confusion. The IDE will use the real MCP, while mcpguard`,
       )
       console.log(`   uses the sandboxed version.\n`)
     } else if (conflict.inIDE && !conflict.inIsolate) {
       console.log(
-        `ℹ️  "${conflict.name}" is configured in your IDE but not loaded in mcp-isolate`,
+        `ℹ️  "${conflict.name}" is configured in your IDE but not loaded in mcpguard`,
       )
       console.log(
         `   This is fine - they won't conflict unless you load it here.\n`,
@@ -1125,7 +1125,7 @@ async function main() {
 
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║         MCP Isolate Runner - Interactive CLI              ║
+║              MCP Guard - Interactive CLI                  ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.

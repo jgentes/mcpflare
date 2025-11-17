@@ -589,7 +589,7 @@ export class WorkerManager {
 
       const client = new Client(
         {
-          name: 'mcp-isolate-runner',
+          name: 'mcpguard',
           version: '0.1.0',
         },
         {

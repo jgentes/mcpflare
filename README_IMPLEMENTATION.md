@@ -1,8 +1,8 @@
-# MCP Isolate Runner - Implementation Summary
+# MCP Guard - Implementation Summary
 
 ## 🎉 Implementation Complete
 
-The MCP Isolate Runner has been **fully implemented** and is ready for use. This document provides an overview of what was built and how to use it.
+MCP Guard has been **fully implemented** and is ready for use. This document provides an overview of what was built and how to use it.
 
 ## 📦 What Was Built
 
@@ -94,7 +94,7 @@ npm run test:security      # Security tests
 ## 📁 Project Structure
 
 ```
-mcp-isolate-runner/
+mcpguard/
 ├── src/
 │   ├── cli/              # Interactive CLI implementation
 │   ├── server/           # MCP server implementation

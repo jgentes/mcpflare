@@ -1,4 +1,4 @@
-# MCP Isolate Runner - Architecture Diagrams
+# MCP Guard - Architecture Diagrams
 
 ## System Architecture
 
@@ -8,7 +8,7 @@ graph TB
         Agent[AI Agent<br/>Cursor IDE]
     end
     
-    subgraph "MCP Isolate Runner Meta-MCP Server"
+    subgraph "MCP Guard Meta-MCP Server"
         MCP[MCP Protocol Handler]
         WM[Worker Manager]
         SC[Schema Converter]
@@ -250,7 +250,7 @@ graph TB
     end
     
     subgraph "Local Testing"
-        LocalMCP[MCP Isolate Runner<br/>Local Mode]
+        LocalMCP[MCP Guard<br/>Local Mode]
         LocalWorker[workerd<br/>Local Runtime]
     end
     
@@ -261,7 +261,7 @@ graph TB
     end
     
     subgraph "Production Planned"
-        ProdMCP[MCP Isolate Runner<br/>Production]
+        ProdMCP[MCP Guard<br/>Production]
         CloudflareWorkers[Cloudflare Workers<br/>Global Network]
     end
     
