@@ -94,7 +94,7 @@ describe('WorkerManager', () => {
   });
 
   describe('generateWorkerCode', () => {
-    it('should generate worker code with embedded RPC URL', async () => {
+    it('should generate worker code with Service Binding support', async () => {
       const tools: MCPTool[] = [
         {
           name: 'test_tool',
@@ -124,8 +124,9 @@ describe('WorkerManager', () => {
       expect(workerCode.mainModule).toBe('worker.js');
       expect(workerCode.modules['worker.js']).toBeDefined();
       expect(workerCode.env.MCP_ID).toBe('test-mcp-id');
-      expect(workerCode.env.MCP_RPC_URL).toBeDefined();
+      expect(workerCode.env.MCP_RPC_URL).toBeDefined(); // Used by parent Worker to create Service Binding
       expect(typeof workerCode.env.MCP_RPC_URL).toBe('string');
+      expect(workerCode.globalOutbound).toBeNull(); // True isolation enabled
     });
 
     it('should include tool bindings in generated code', async () => {
@@ -165,8 +166,10 @@ describe('WorkerManager', () => {
       const code = workerCode.modules['worker.js'] as string;
       expect(code).toContain('search_users');
       expect(code).toContain('get_user');
-      expect(code).toContain('fetch'); // Uses fetch to call RPC server
+      expect(code).toContain('env.MCP.callTool'); // Uses Service Binding instead of fetch()
+      expect(code).not.toContain('fetch'); // No fetch() calls for MCP tools
       expect(code).toContain('mcpBinding');
+      expect(workerCode.globalOutbound).toBeNull(); // True isolation enabled
     });
 
     it('should escape special characters in RPC URL', async () => {

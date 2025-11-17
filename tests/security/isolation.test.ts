@@ -127,16 +127,16 @@ describe('Security: Code Isolation', () => {
       );
 
       const code = workerCode.modules['worker.js'] as string;
-      const rpcUrl = workerCode.env.MCP_RPC_URL as string;
       
       // Code should be valid and not throw syntax errors
       expect(code).toBeDefined();
       expect(typeof code).toBe('string');
       expect(code.length).toBeGreaterThan(0);
       
-      // RPC URL should be properly embedded and escaped in the code when tools exist
-      expect(code).toContain('fetch');
-      expect(code).toContain('mcp-rpc');
+      // Code should use Service Binding instead of fetch() for security
+      expect(code).toContain('env.MCP.callTool');
+      expect(code).not.toContain('fetch'); // No fetch() calls - true isolation
+      expect(workerCode.globalOutbound).toBeNull(); // Network isolation enabled
     });
   });
 });

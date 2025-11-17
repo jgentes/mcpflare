@@ -109,7 +109,7 @@ MCP Guard is a meta-MCP server that:
 - Execute AI-generated TypeScript code
 - Provide sandboxed runtime
 - Enforce security policies
-- Proxy MCP calls via RPC bindings
+- Proxy MCP calls via Service Bindings
 
 **Key Features:**
 - No direct network access (`globalOutbound: null`)
@@ -311,8 +311,8 @@ MCP Guard is a meta-MCP server that:
 
 ### Isolation
 
-1. **Network Isolation**: All Worker isolates must have `globalOutbound: null`
-2. **Binding-Only Access**: MCP servers accessible only through RPC bindings
+1. **Network Isolation**: All dynamic Worker isolates have `globalOutbound: null` - true network isolation enabled
+2. **Service Binding Access**: MCP servers accessible only through Service Bindings (no fetch() needed)
 3. **No Cross-Contamination**: Each MCP runs in its own disposable isolate
 4. **API Key Hiding**: All credentials managed by meta-MCP, never exposed to isolates
 
@@ -406,7 +406,7 @@ MCP Guard is a meta-MCP server that:
 ### Phase 2: Security Hardening (Week 2-3)
 
 - [ ] Implement network isolation (`globalOutbound: null`)
-- [ ] Add RPC binding architecture
+- [x] Add Service Binding architecture (completed)
 - [ ] Secrets management system
 - [ ] Input validation and sanitization
 - [ ] Audit logging

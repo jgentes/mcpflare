@@ -4,10 +4,15 @@
  * This Worker uses the Worker Loader API to spawn dynamic Worker isolates
  * that execute AI-generated TypeScript code with access to MCP server bindings.
  *
+ * Uses Service Bindings for secure communication between dynamic workers and MCP servers.
+ *
  * Reference: https://blog.cloudflare.com/code-mode/
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/bindings/worker-loader/
+ * Reference: https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/
  */
 
+// @ts-expect-error - cloudflare:workers is a runtime import, types available at runtime
+import { WorkerEntrypoint } from 'cloudflare:workers'
 import type { WorkerCode } from '../types/worker.js'
 
 // ExecutionContext is a global type in Cloudflare Workers runtime
@@ -15,6 +20,9 @@ import type { WorkerCode } from '../types/worker.js'
 type ExecutionContext = {
   waitUntil(promise: Promise<any>): void
   passThroughOnException(): void
+  exports: {
+    MCPBridge: (options?: { props?: { mcpId: string; rpcUrl: string } }) => MCPBridge
+  }
 }
 
 interface Env {
@@ -34,11 +42,55 @@ interface Env {
   [key: string]: any // MCP bindings and other env vars
 }
 
+/**
+ * MCPBridge Service Binding
+ *
+ * Provides a secure Service Binding for dynamic workers to call MCP tools.
+ * The bridge internally calls the Node.js RPC server, allowing dynamic workers
+ * to remain fully isolated (globalOutbound: null) while still accessing MCP functionality.
+ */
+export class MCPBridge extends WorkerEntrypoint<{ mcpId: string; rpcUrl: string }> {
+  /**
+   * Call an MCP tool via the Node.js RPC server
+   */
+  async callTool(toolName: string, input: any): Promise<any> {
+    // @ts-expect-error - ctx.props is available at runtime via WorkerEntrypoint
+    const { mcpId, rpcUrl } = this.ctx.props
+
+    // Call Node.js RPC server (parent Worker can use fetch)
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mcpId,
+        toolName,
+        input: input || {},
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        error: response.statusText,
+      })) as { error?: string }
+      throw new Error(
+        `MCP tool call failed: ${errorData.error || response.statusText}`,
+      )
+    }
+
+    const result = await response.json() as { success: boolean; result?: any; error?: string }
+    if (!result.success) {
+      throw new Error(`MCP tool call failed: ${result.error || 'Unknown error'}`)
+    }
+
+    return result.result
+  }
+}
+
 export default {
   async fetch(
     request: Request,
     env: Env,
-    _ctx: ExecutionContext,
+    ctx: ExecutionContext,
   ): Promise<Response> {
     // CORS headers for development
     const corsHeaders = {
@@ -78,14 +130,28 @@ export default {
       // Use Worker Loader API to spawn a dynamic Worker isolate
       // Reference: https://developers.cloudflare.com/workers/runtime-apis/bindings/worker-loader/
       // Following Cloudflare's Code Mode pattern: https://blog.cloudflare.com/code-mode/
+      // Dynamic workers use Service Bindings for secure MCP access (no fetch() needed)
       const dynamicWorker = env.LOADER.get(workerId, async () => {
-        // Note: Functions cannot be passed via env (they can't be cloned)
-        // Instead, we pass the RPC URL and MCP ID as strings
-        // The worker code will generate a binding function that uses these values
-        // The actual RPC call will be made by embedding the URL in the generated code
-        // Since globalOutbound is null, we need to allow fetch to the RPC server specifically
-        // For now, keep MCP_RPC_URL and MCP_ID as strings - they'll be used in generated code
-        return workerCode
+        // Extract MCP ID and RPC URL from workerCode.env (set by WorkerManager)
+        const mcpId = workerCode.env?.MCP_ID as string
+        const rpcUrl = workerCode.env?.MCP_RPC_URL as string
+
+        // Use ctx.exports to create a Service Binding
+        // ctx.exports contains exported WorkerEntrypoint classes
+        // Reference: https://developers.cloudflare.com/workers/runtime-apis/context/#exports
+        const mcpBinding = ctx.exports.MCPBridge({
+          props: { mcpId, rpcUrl },
+        })
+
+        // Replace env with Service Binding instead of passing strings
+        // The Service Binding allows dynamic workers to call MCP tools without fetch()
+        return {
+          ...workerCode,
+          env: {
+            ...workerCode.env,
+            MCP: mcpBinding,
+          },
+        }
       })
 
       // Get the default entrypoint of the dynamic Worker
