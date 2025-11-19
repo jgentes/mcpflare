@@ -1,7 +1,7 @@
 {
   "name": "mcpguard",
-  "version": "0.1.0",
-  "description": "Enterprise-grade MCP server providing secure, isolated execution using Cloudflare Workers",
+  "version": "0.2.0",
+  "description": "Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.",
   "type": "module",
   "main": "dist/server/index.js",
   "types": "dist/server/index.d.ts",
@@ -26,14 +26,10 @@
   },
   "keywords": [
     "mcp",
-    "model-context-protocol",
-    "ai-agents",
     "cloudflare-workers",
-    "isolate",
-    "security",
     "code-mode"
   ],
-  "author": "",
+  "author": "James Gentes",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
