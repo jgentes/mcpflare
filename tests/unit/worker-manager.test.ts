@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { WorkerManager } from '../../src/server/worker-manager.js';
+import { testConfigCleanup, trackWorkerManager } from '../helpers/config-cleanup.js';
 import { MCPConfig, MCPTool } from '../../src/types/mcp.js';
 import { WorkerError } from '../../src/utils/errors.js';
 
@@ -19,18 +20,30 @@ describe('WorkerManager', () => {
 
   beforeEach(() => {
     manager = new WorkerManager();
+    // Track manager for global cleanup
+    trackWorkerManager(manager);
   });
 
   afterEach(async () => {
-    // Clean up any loaded instances
+    // Clean up any loaded instances and wait for processes to terminate
     const instances = manager.listInstances();
     for (const instance of instances) {
       try {
+        // Track config names for cleanup
+        testConfigCleanup.trackConfig(instance.mcp_name);
         await manager.unloadMCP(instance.mcp_id);
       } catch (error) {
         // Ignore cleanup errors
       }
     }
+    
+    // Give processes time to fully terminate
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  afterAll(() => {
+    // Clean up any MCP configs that were saved during tests
+    testConfigCleanup.cleanup();
   });
 
   describe('listInstances', () => {

@@ -1,4 +1,9 @@
-import { type ChildProcess, type SpawnOptions, spawn } from 'node:child_process'
+import {
+  type ChildProcess,
+  exec,
+  type SpawnOptions,
+  spawn,
+} from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   createServer,
@@ -86,6 +91,7 @@ export class WorkerManager {
   private instances: Map<string, MCPInstance> = new Map()
   private mcpProcesses: Map<string, ChildProcess> = new Map()
   private mcpClients: Map<string, Client> = new Map() // Store MCP clients for communication
+  private wranglerProcesses: Set<ChildProcess> = new Set() // Track all Wrangler processes for cleanup
   private schemaConverter: SchemaConverter
   private wranglerAvailable: boolean | null = null
   // Cache schemas by MCP name + config hash
@@ -433,10 +439,17 @@ export class WorkerManager {
         error instanceof Error ? error.message : 'Unknown error'
       logger.error({ error, mcpId, mcpName }, 'Failed to load MCP server')
 
-      // Cleanup on failure
-      const process = this.mcpProcesses.get(mcpId)
-      if (process) {
-        process.kill()
+      // Cleanup on failure - kill MCP process
+      const mcpProcess = this.mcpProcesses.get(mcpId)
+      if (mcpProcess) {
+        try {
+          await this.killMCPProcess(mcpProcess)
+        } catch (error: unknown) {
+          logger.warn(
+            { error, mcpId },
+            'Error killing MCP process during load failure',
+          )
+        }
         this.mcpProcesses.delete(mcpId)
       }
 
@@ -559,10 +572,14 @@ export class WorkerManager {
       this.mcpClients.delete(mcpId)
     }
 
-    // Kill MCP process (fallback)
-    const process = this.mcpProcesses.get(mcpId)
-    if (process) {
-      process.kill()
+    // Kill MCP process and wait for it to terminate
+    const mcpProcess = this.mcpProcesses.get(mcpId)
+    if (mcpProcess) {
+      try {
+        await this.killMCPProcess(mcpProcess)
+      } catch (error: unknown) {
+        logger.warn({ error, mcpId }, 'Error killing MCP process during unload')
+      }
       this.mcpProcesses.delete(mcpId)
     }
 
@@ -637,9 +654,14 @@ export class WorkerManager {
 
       try {
         // On Windows, .cmd files need shell: true to execute properly
+        // In test environment, redirect stderr to suppress MCP server startup logs
+        const isTestEnv =
+          process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
         const spawnOptions: SpawnOptions = {
           env: { ...process.env, ...config.env },
-          stdio: ['pipe', 'pipe', 'pipe'],
+          stdio: isTestEnv
+            ? ['pipe', 'pipe', 'ignore'] // Suppress stderr in tests
+            : ['pipe', 'pipe', 'pipe'], // Normal mode: pipe stderr for logging
         }
 
         if (process.platform === 'win32') {
@@ -650,9 +672,13 @@ export class WorkerManager {
 
         mcpProcess = spawn(command, args, spawnOptions)
 
-        logger.debug(
-          { pid: mcpProcess.pid },
-          'MCP process spawned successfully',
+        logger.info(
+          {
+            pid: mcpProcess.pid,
+            command,
+            args: args.slice(0, 5), // First 5 args for brevity
+          },
+          `MCP process spawned: PID ${mcpProcess.pid}`,
         )
 
         // If we have cached schema, we don't need to wait for initialization
@@ -687,7 +713,9 @@ export class WorkerManager {
           })
         }
 
-        if (mcpProcess.stderr) {
+        // In test mode, stderr is redirected to 'ignore', so we don't need to handle it
+        // In normal mode, we listen to stderr for initialization detection and logging
+        if (!isTestEnv && mcpProcess.stderr) {
           mcpProcess.stderr.on('data', (data: Buffer) => {
             const stderrOutput = data.toString()
             logger.debug({ error: stderrOutput }, 'MCP stderr')
@@ -717,6 +745,14 @@ export class WorkerManager {
             new MCPConnectionError(
               `Failed to start MCP process: ${error.message}`,
             ),
+          )
+        })
+
+        // Track when MCP process exits naturally
+        mcpProcess.on('exit', (code, signal) => {
+          logger.debug(
+            { pid: mcpProcess.pid, code, signal, command },
+            'MCP process exited naturally',
           )
         })
 
@@ -816,6 +852,19 @@ export class WorkerManager {
       if (process) {
         // Update our process map with the actual process
         this.mcpProcesses.set(mcpId, process)
+
+        if (process.pid) {
+          logger.info(
+            {
+              pid: process.pid,
+              command: config.command,
+              args: (config.args || []).slice(0, 5),
+              mcpId,
+              mcpName,
+            },
+            `MCP process spawned via StdioClientTransport: PID ${process.pid}`,
+          )
+        }
       }
 
       // List tools from the MCP server
@@ -1134,6 +1183,32 @@ ${mcpBindingStubs}
         },
       )
 
+      // Track Wrangler process for cleanup
+      if (wranglerProcess?.pid) {
+        this.wranglerProcesses.add(wranglerProcess)
+
+        logger.info(
+          {
+            pid: wranglerProcess.pid,
+            port,
+            mcpId,
+            command: npxCmd,
+            args: ['wrangler', 'dev', '--local', '--port', port.toString()],
+          },
+          `Wrangler process spawned: PID ${wranglerProcess.pid} on port ${port}`,
+        )
+
+        // Remove from tracking set when process exits
+        const trackedProcess = wranglerProcess
+        trackedProcess.on('exit', (code, signal) => {
+          this.wranglerProcesses.delete(trackedProcess)
+          logger.debug(
+            { pid: trackedProcess.pid, code, signal },
+            'Wrangler process exited',
+          )
+        })
+      }
+
       if (wranglerProcess?.stdout) {
         wranglerProcess.stdout.on('data', (data: Buffer) => {
           const output = data.toString()
@@ -1326,22 +1401,7 @@ ${mcpBindingStubs}
 
       // Clean up - wait for process to terminate on Windows
       if (wranglerProcess) {
-        wranglerProcess.kill()
-        // Wait for process to fully terminate, especially important on Windows
-        await new Promise<void>((resolve) => {
-          if (wranglerProcess) {
-            wranglerProcess.on('exit', () => resolve())
-            // Force kill after 2 seconds if it doesn't exit
-            setTimeout(() => {
-              if (wranglerProcess && !wranglerProcess.killed) {
-                wranglerProcess.kill('SIGKILL')
-              }
-              resolve()
-            }, 2000)
-          } else {
-            resolve()
-          }
-        })
+        await this.killWranglerProcess(wranglerProcess)
         wranglerProcess = null
       }
 
@@ -1457,24 +1517,155 @@ ${mcpBindingStubs}
 
       // Clean up on error - wait for process to terminate
       if (wranglerProcess) {
-        wranglerProcess.kill()
-        await new Promise<void>((resolve) => {
-          if (wranglerProcess) {
-            wranglerProcess.on('exit', () => resolve())
-            setTimeout(() => {
-              if (wranglerProcess && !wranglerProcess.killed) {
-                wranglerProcess.kill('SIGKILL')
-              }
-              resolve()
-            }, 2000)
-          } else {
-            resolve()
-          }
-        })
+        await this.killWranglerProcess(wranglerProcess)
       }
 
       throw new WorkerError(`Wrangler execution failed: ${errorMessage}`)
     }
+  }
+
+  /**
+   * Kill a process and all its children (process tree)
+   * On Windows, uses taskkill to kill the process tree
+   * On Unix, uses SIGTERM/SIGKILL with process group
+   */
+  private async killProcessTree(pid: number): Promise<void> {
+    if (!pid) {
+      return
+    }
+
+    return new Promise<void>((resolve) => {
+      if (process.platform === 'win32') {
+        // On Windows, use taskkill to kill the process tree
+        // /F = force kill, /T = kill child processes, /PID = process ID
+        exec(`taskkill /F /T /PID ${pid}`, () => {
+          // Ignore errors - process might already be dead
+          resolve()
+        })
+      } else {
+        // On Unix, try SIGTERM first, then SIGKILL
+        // Use process group to kill children
+        try {
+          process.kill(-pid, 'SIGTERM')
+          setTimeout(() => {
+            try {
+              process.kill(-pid, 'SIGKILL')
+            } catch {
+              // Process might already be dead
+            }
+            resolve()
+          }, 1000)
+        } catch {
+          // Process might already be dead
+          resolve()
+        }
+      }
+    })
+  }
+
+  /**
+   * Kill a Wrangler process and wait for it to terminate
+   * Wrangler spawns child processes, so we need to kill the entire process tree
+   */
+  private async killWranglerProcess(proc: ChildProcess): Promise<void> {
+    if (!proc || proc.killed) {
+      return
+    }
+
+    const pid = proc.pid
+    if (!pid) {
+      return
+    }
+
+    logger.info({ pid }, `Killing Wrangler process tree: PID ${pid}`)
+
+    // Remove from tracking set
+    this.wranglerProcesses.delete(proc)
+
+    // Kill the process tree (including child processes)
+    await this.killProcessTree(pid)
+
+    // Also try the standard kill method as a fallback
+    try {
+      proc.kill('SIGTERM')
+    } catch {
+      // Process might already be dead
+    }
+
+    // Wait for process to fully terminate
+    await new Promise<void>((resolve) => {
+      if (proc.killed) {
+        resolve()
+        return
+      }
+
+      proc.on('exit', () => resolve())
+
+      // Force kill after 3 seconds if it doesn't exit
+      setTimeout(() => {
+        if (proc && !proc.killed && proc.pid) {
+          try {
+            // Try killing the tree again with SIGKILL
+            this.killProcessTree(proc.pid).catch(() => {
+              // Ignore errors
+            })
+          } catch {
+            // Process might already be dead
+          }
+        }
+        resolve()
+      }, 3000)
+    })
+  }
+
+  /**
+   * Kill an MCP process and wait for it to terminate
+   * MCP processes might also spawn children, so kill the process tree
+   */
+  private async killMCPProcess(proc: ChildProcess): Promise<void> {
+    if (!proc || proc.killed) {
+      return
+    }
+
+    const pid = proc.pid
+    if (!pid) {
+      return
+    }
+
+    logger.info({ pid }, `Killing MCP process tree: PID ${pid}`)
+
+    // Kill the process tree (in case MCP spawned children)
+    await this.killProcessTree(pid)
+
+    // Also try the standard kill method as a fallback
+    try {
+      proc.kill('SIGTERM')
+    } catch {
+      // Process might already be dead
+    }
+
+    // Wait for process to exit
+    await new Promise<void>((resolve) => {
+      if (proc.killed) {
+        resolve()
+        return
+      }
+
+      proc.on('exit', () => resolve())
+      setTimeout(() => {
+        if (proc && !proc.killed && proc.pid) {
+          try {
+            // Try killing the tree again with SIGKILL
+            this.killProcessTree(proc.pid).catch(() => {
+              // Ignore errors
+            })
+          } catch {
+            // Process might already be dead
+          }
+        }
+        resolve()
+      }, 2000)
+    })
   }
 
   /**
@@ -1525,19 +1716,23 @@ ${mcpBindingStubs}
       cleanupPromises.push(
         (async () => {
           try {
-            proc.kill()
-            // Wait for process to exit
-            await new Promise<void>((resolve) => {
-              proc.on('exit', () => resolve())
-              setTimeout(() => {
-                if (!proc.killed) {
-                  proc.kill('SIGKILL')
-                }
-                resolve()
-              }, 1000)
-            })
+            await this.killMCPProcess(proc)
           } catch (error: unknown) {
             logger.warn({ error, mcpId }, 'Error killing MCP process')
+          }
+        })(),
+      )
+    }
+
+    // Kill all Wrangler processes
+    const wranglerProcesses = Array.from(this.wranglerProcesses)
+    for (const proc of wranglerProcesses) {
+      cleanupPromises.push(
+        (async () => {
+          try {
+            await this.killWranglerProcess(proc)
+          } catch (error: unknown) {
+            logger.warn({ error }, 'Error killing Wrangler process')
           }
         })(),
       )
@@ -1546,12 +1741,13 @@ ${mcpBindingStubs}
     // Wait for all cleanup to complete (with timeout)
     await Promise.race([
       Promise.all(cleanupPromises),
-      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+      new Promise<void>((resolve) => setTimeout(resolve, 5000)),
     ])
 
     // Clear all maps
     this.mcpClients.clear()
     this.mcpProcesses.clear()
+    this.wranglerProcesses.clear()
     this.instances.clear()
     this.schemaCache.clear()
 

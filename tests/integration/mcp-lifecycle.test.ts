@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
 import { WorkerManager } from '../../src/server/worker-manager.js';
 import { MCPConfig } from '../../src/types/mcp.js';
+import { testConfigCleanup, trackWorkerManager } from '../helpers/config-cleanup.js';
 
 // Mock logger
 vi.mock('../../src/utils/logger.js', () => ({
@@ -18,18 +19,30 @@ describe('MCP Lifecycle Integration', () => {
 
   beforeEach(() => {
     manager = new WorkerManager();
+    // Track manager for global cleanup
+    trackWorkerManager(manager);
   });
 
   afterEach(async () => {
-    // Clean up any loaded instances
+    // Clean up any loaded instances and wait for processes to terminate
     const instances = manager.listInstances();
     for (const instance of instances) {
       try {
+        // Track config names for cleanup
+        testConfigCleanup.trackConfig(instance.mcp_name);
         await manager.unloadMCP(instance.mcp_id);
       } catch (error) {
         // Ignore cleanup errors
       }
     }
+    
+    // Give processes time to fully terminate
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  afterAll(() => {
+    // Clean up any MCP configs that were saved during tests
+    testConfigCleanup.cleanup();
   });
 
   describe('RPC Server', () => {

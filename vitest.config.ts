@@ -4,6 +4,14 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    globalSetup: './tests/helpers/setup.ts',
+    globalTeardown: './tests/helpers/global-teardown.ts',
+    env: {
+      // Silence logger during tests unless LOG_LEVEL is explicitly set
+      NODE_ENV: 'test',
+      VITEST: 'true',
+      LOG_LEVEL: process.env.LOG_LEVEL || 'silent',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json'],

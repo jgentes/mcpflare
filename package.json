@@ -16,6 +16,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:security": "vitest run tests/security",
+    "cleanup:test-configs": "tsx scripts/cleanup-test-configs.js",
     "lint": "biome lint src",
     "lint:fix": "biome lint --write src",
     "format": "biome format --write src",

@@ -1,9 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { ConfigManager } from '../../src/utils/config-manager.js';
 import { MCPConfig } from '../../src/types/mcp.js';
 import { mkdirSync, writeFileSync, unlinkSync, rmdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { testConfigCleanup } from '../helpers/config-cleanup.js';
+
+// Mock logger to suppress log output during tests
+vi.mock('../../src/utils/logger.js', () => ({
+  default: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    level: 'silent',
+  },
+}));
 
 describe('ConfigManager', () => {
   let testDir: string;
@@ -18,7 +30,7 @@ describe('ConfigManager', () => {
   });
 
   afterEach(() => {
-    // Cleanup
+    // Cleanup test files
     try {
       if (existsSync(configPath)) {
         unlinkSync(configPath);
@@ -29,13 +41,36 @@ describe('ConfigManager', () => {
     } catch (error) {
       // Ignore cleanup errors
     }
+    
+    // Track any configs that might have been saved to the real config file
+    // (in case importConfigs wasn't called before saveConfig)
+    if (manager) {
+      try {
+        const savedConfigs = manager.getSavedConfigs();
+        for (const name of Object.keys(savedConfigs)) {
+          if (['simple', 'no-env', 'tool1', 'tool2', 'test', 'nested', 'missing', 'github', 'imported_tool', 'tool'].includes(name)) {
+            testConfigCleanup.trackConfig(name);
+          }
+        }
+      } catch (error) {
+        // Ignore errors
+      }
+    }
+  });
+
+  afterAll(() => {
+    // Clean up any MCP configs that were accidentally saved to the real config file
+    testConfigCleanup.cleanup();
   });
 
   describe('saveConfig and getSavedConfig', () => {
     it('should save and retrieve a config', () => {
+      // IMPORTANT: Create ConfigManager AFTER setting up test directory
+      // and ALWAYS call importConfigs() immediately to use test path
+      // This prevents accidentally saving to the real config file
       manager = new ConfigManager();
       
-      // Use importConfigs to set a custom path
+      // Use importConfigs to set a custom path BEFORE any operations
       const result = manager.importConfigs(configPath);
       
       const config: MCPConfig = {
@@ -56,6 +91,7 @@ describe('ConfigManager', () => {
 
     it('should handle configs without args', () => {
       manager = new ConfigManager();
+      // Set test path BEFORE any operations
       manager.importConfigs(configPath);
 
       const config: MCPConfig = {
@@ -74,6 +110,7 @@ describe('ConfigManager', () => {
 
     it('should handle configs without env', () => {
       manager = new ConfigManager();
+      // Set test path BEFORE any operations
       manager.importConfigs(configPath);
 
       const config: MCPConfig = {
