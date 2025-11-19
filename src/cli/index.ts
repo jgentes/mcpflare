@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 
 import * as readline from 'node:readline'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import dotenv from 'dotenv'
 import { MetricsCollector } from '../server/metrics-collector.js'
 import { WorkerManager } from '../server/worker-manager.js'
-import { ExecuteCodeRequestSchema, LoadMCPRequestSchema } from '../types/mcp.js'
+import {
+  type MCPConfig,
+  ExecuteCodeRequestSchema,
+  LoadMCPRequestSchema,
+} from '../types/mcp.js'
 import { ConfigManager } from '../utils/config-manager.js'
 import { selectEnvVarsInteractively } from '../utils/env-selector.js'
 import logger from '../utils/logger.js'
+import { ProgressIndicator } from '../utils/progress-indicator.js'
 import { validateInput, validateTypeScriptCode } from '../utils/validation.js'
 import { formatExecutionResult } from '../utils/wrangler-formatter.js'
 
@@ -173,7 +180,7 @@ async function loadMCP() {
     // Resolve environment variables before loading
     const resolvedConfig = configManager.resolveEnvVarsInObject(
       validated.mcp_config,
-    )
+    ) as MCPConfig
 
     console.log('\nLoading MCP server...')
     const startTime = Date.now()
@@ -497,7 +504,7 @@ async function testTool() {
       try {
         const resolvedConfig = configManager.resolveEnvVarsInObject(
           selectedMCP.config,
-        )
+        ) as MCPConfig
         const startTime = Date.now()
         selectedInstance = await workerManager.loadMCP(
           selectedMCP.name,
@@ -565,11 +572,11 @@ async function testTool() {
           selectedInstance.mcp_id,
           result.execution_time_ms,
           result.success,
-          result.metrics?.mcp_calls_made || 0,
+          result.metrics?.mcp_calls_made ?? 0,
         )
 
         console.log('\n✅ Execution result:')
-        console.log(formatExecutionResult(result))
+        console.log(formatExecutionResult(result as any))
         console.log('')
       } catch (error: any) {
         console.error('\n❌ Execution failed:')
@@ -587,6 +594,210 @@ async function testTool() {
     }
   } catch (error: any) {
     console.error('\n❌ Error testing tool:', error.message)
+    if (error.details) {
+      console.error('Details:', JSON.stringify(error.details, null, 2))
+    }
+  }
+}
+
+/**
+ * Format tool result for direct MCP testing (simpler than Worker execution)
+ */
+function formatDirectToolResult(result: any): string {
+  try {
+    const jsonStr = JSON.stringify(result, null, 2)
+    // Limit output to 2000 characters
+    if (jsonStr.length > 2000) {
+      return (
+        jsonStr.substring(0, 2000) +
+        `\n... (truncated, ${jsonStr.length - 2000} more characters)`
+      )
+    }
+    return jsonStr
+  } catch (e) {
+    return String(result)
+  }
+}
+
+/**
+ * Test MCP directly without Wrangler/Worker isolation
+ * Uses saved configs from IDE config file
+ */
+async function testDirect() {
+  try {
+    const savedConfigs = configManager.getSavedConfigs()
+    const savedNames = Object.keys(savedConfigs)
+
+    if (savedNames.length === 0) {
+      console.log(
+        '\n📭 No saved MCP configurations found. Please load an MCP first using the "load" command.',
+      )
+      return
+    }
+
+    console.log('\n📋 Available MCP Configurations:')
+    savedNames.forEach((name, index) => {
+      console.log(`  ${index + 1}. ${name}`)
+    })
+
+    const selection = await question(
+      '\nSelect MCP by number or name (or "exit" to quit): ',
+    )
+    const trimmed = selection.trim()
+
+    if (trimmed.toLowerCase() === 'exit') {
+      return
+    }
+
+    let selectedName: string | null = null
+    const selectionNum = parseInt(trimmed, 10)
+
+    if (
+      !Number.isNaN(selectionNum) &&
+      selectionNum >= 1 &&
+      selectionNum <= savedNames.length
+    ) {
+      selectedName = savedNames[selectionNum - 1]
+    } else {
+      selectedName =
+        savedNames.find((name) => name.toLowerCase() === trimmed.toLowerCase()) ||
+        null
+    }
+
+    if (!selectedName) {
+      console.error(`\n❌ MCP not found: ${selection}`)
+      return
+    }
+
+    const savedConfig = configManager.getSavedConfig(selectedName)
+    if (!savedConfig) {
+      console.error(`\n❌ Configuration not found for: ${selectedName}`)
+      return
+    }
+
+    // Resolve environment variables
+    const resolvedConfig = configManager.resolveEnvVarsInObject(
+      savedConfig,
+    ) as MCPConfig
+
+    console.log(`\n🔍 Testing ${selectedName} directly (bypassing Wrangler)...\n`)
+    console.log('Configuration:')
+    console.log(`  Command: ${resolvedConfig.command}`)
+    console.log(`  Args: ${resolvedConfig.args?.join(' ') || 'none'}`)
+    const envKeys = Object.keys(resolvedConfig.env || {})
+    console.log(`  Env keys: ${envKeys.join(', ') || 'none'}`)
+    console.log('')
+
+    const transport = new StdioClientTransport({
+      command: resolvedConfig.command,
+      args: resolvedConfig.args || [],
+      env: resolvedConfig.env,
+    })
+
+    const client = new Client(
+      { name: 'mcpguard-cli-direct-test', version: '1.0.0' },
+      { capabilities: {} },
+    )
+
+    try {
+      const progress = new ProgressIndicator()
+      ;(progress as any).steps = [
+        { name: 'CLI', status: 'pending' },
+        { name: 'MCP SDK Client', status: 'pending' },
+        { name: 'Target MCP', status: 'pending' },
+      ]
+
+      console.log('📡 Connecting to MCP server...')
+      progress.updateStep(0, 'running')
+      progress.updateStep(1, 'running')
+
+      await client.connect(transport, { timeout: 10000 })
+
+      progress.updateStep(0, 'success')
+      progress.updateStep(1, 'success')
+      progress.updateStep(2, 'running')
+      progress.showFinal()
+      console.log('✅ Connected successfully!\n')
+
+      console.log('📋 Fetching available tools...')
+      const toolsResponse = await client.listTools()
+      const tools = toolsResponse.tools
+      progress.updateStep(2, 'success')
+      progress.showFinal()
+      console.log(`✅ Found ${tools.length} tools\n`)
+
+      // Interactive tool selection and execution
+      while (true) {
+        const selectedTool = await selectToolFromInstance(tools)
+
+        if (!selectedTool) {
+          break // User chose to exit
+        }
+
+        console.log(`\n🔧 Selected tool: ${selectedTool.name}`)
+        if (selectedTool.description) {
+          console.log(`   ${selectedTool.description}`)
+        }
+
+        const args = await collectToolArguments(selectedTool)
+
+        console.log(`\n🚀 Executing tool with arguments:`)
+        console.log(JSON.stringify(args, null, 2))
+        console.log('')
+
+        const execProgress = new ProgressIndicator()
+        ;(execProgress as any).steps = [
+          { name: 'CLI', status: 'pending' },
+          { name: 'MCP SDK Client', status: 'pending' },
+          { name: 'Target MCP', status: 'pending' },
+        ]
+        execProgress.updateStep(0, 'success')
+        execProgress.updateStep(1, 'running')
+        execProgress.updateStep(2, 'running')
+
+        try {
+          const result = await client.callTool({
+            name: selectedTool.name,
+            arguments: args,
+          })
+
+          execProgress.updateStep(1, 'success')
+          execProgress.updateStep(2, 'success')
+          execProgress.showFinal()
+
+          console.log('\n✅ Tool execution result:')
+          console.log(formatDirectToolResult(result))
+          console.log('')
+        } catch (error: any) {
+          execProgress.updateStep(1, 'failed')
+          execProgress.updateStep(2, 'failed')
+          execProgress.showFinal(2)
+
+          console.error('\n❌ Tool execution failed:')
+          console.error(`   ${error.message}`)
+          if (error.stack) {
+            console.error(`\nStack trace:\n${error.stack}`)
+          }
+          console.log('')
+        }
+
+        const continueChoice = await question('Test another tool? (Y/n): ')
+        if (continueChoice.trim().toLowerCase() === 'n') {
+          break
+        }
+      }
+
+      await transport.close()
+      console.log('\n✅ Test session completed!\n')
+    } catch (error: any) {
+      console.error('\n❌ Error testing MCP:')
+      console.error(`   ${error.message}`)
+      if (error.stack) {
+        console.error(`\nStack trace:\n${error.stack}`)
+      }
+    }
+  } catch (error: any) {
+    console.error('\n❌ Error:', error.message)
     if (error.details) {
       console.error('Details:', JSON.stringify(error.details, null, 2))
     }
@@ -680,10 +891,10 @@ async function executeCode() {
       validated.mcp_id,
       result.execution_time_ms,
       result.success,
-      result.metrics?.mcp_calls_made || 0,
+      result.metrics?.mcp_calls_made ?? 0,
     )
 
-    console.log(formatExecutionResult(result))
+    console.log(formatExecutionResult(result as any))
   } catch (error: any) {
     console.error('\n❌ Error executing code:', error.message)
     if (error.details) {
@@ -1048,6 +1259,7 @@ function showHelp() {
 Available commands:
   load          - Load an MCP server (shows saved configs, auto-saves new ones)
   test          - Interactively test MCP tools (select tool, enter args, execute via Wrangler)
+  test-direct   - Test MCP directly without Wrangler/Worker isolation (uses saved configs)
   execute       - Execute custom TypeScript code against a loaded MCP
   list          - List all loaded MCP servers
   saved         - List all saved MCP configurations
@@ -1078,6 +1290,10 @@ async function handleCommand(command: string) {
       break
     case 'test':
       await testTool()
+      break
+    case 'test-direct':
+    case 'testdirect':
+      await testDirect()
       break
     case 'list':
       await listMCPs()

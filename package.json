@@ -22,8 +22,7 @@
     "check": "biome check src",
     "check:fix": "biome check --write src",
     "worker:dev": "npx wrangler dev",
-    "benchmark": "tsx benchmarks/github-comparison.ts",
-    "test:mcp": "tsx scripts/test-mcp-directly.ts"
+    "benchmark": "tsx benchmarks/github-comparison.ts"
   },
   "keywords": [
     "mcp",

@@ -1,11 +1,10 @@
 import pino from 'pino'
 
 // Determine log level - CLI mode is quieter by default
-// Check for CLI mode: script name includes 'cli', or CLI_MODE env var is set, or script is test-mcp-directly
+// Check for CLI mode: script name includes 'cli', or CLI_MODE env var is set
 const isCLIMode =
   process.argv[1]?.includes('cli') ||
-  process.env.CLI_MODE === 'true' ||
-  process.argv[1]?.includes('test-mcp-directly')
+  process.env.CLI_MODE === 'true'
 const defaultLevel = isCLIMode ? 'warn' : 'info' // Only warnings/errors in CLI by default
 
 const logger = pino({
