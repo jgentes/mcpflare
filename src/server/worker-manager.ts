@@ -1149,42 +1149,6 @@ export class WorkerManager {
     }
   }
 
-  /**
-   * Escape user code for safe embedding in template literals
-   * Handles backticks, ${} interpolation, backslashes, and other special characters
-   * Uses a multi-step approach to properly escape all template literal special characters
-   */
-  /**
-   * Escape user code for safe direct embedding as executable JavaScript code
-   * Since we're building a string using string concatenation, we need to escape
-   * characters that could break the string literal syntax
-   * 
-   * IMPORTANT: We're NOT wrapping the code in quotes - we're embedding it directly
-   * as executable code, so we only need to escape characters that break string
-   * concatenation (single quotes in string literals we're building)
-   */
-  private escapeUserCode(code: string): string {
-    // Since we're embedding code directly (not as a string literal), we don't need
-    // to escape most characters. However, we're building the worker script using
-    // single-quoted strings, so if the user code contains a single quote that's
-    // part of a string literal, it could break our string concatenation.
-    // 
-    // Actually wait - we're concatenating the code directly, not wrapping it in quotes.
-    // So we don't need to escape quotes. But we do need to ensure the code itself
-    // is valid JavaScript when embedded.
-    // 
-    // The real issue: if the code contains unclosed blocks, it will break the syntax.
-    // But we can't fix that - that's the user's responsibility.
-    // 
-    // However, we should NOT escape newlines - we want them preserved as actual newlines
-    // in the generated code, not as \n strings.
-    
-    // Actually, since we're using string concatenation with single quotes, and we're
-    // NOT wrapping the user code in quotes, we don't need to escape anything!
-    // The code is embedded directly as-is.
-    
-    return code
-  }
 
   private async generateWorkerCode(
     mcpId: string,
@@ -1226,16 +1190,13 @@ export class WorkerManager {
     // Type definitions are only needed for IDE/type checking, not at runtime.
     // Following Cloudflare's Code Mode pattern: https://blog.cloudflare.com/code-mode/
     // Uses Service Bindings for secure MCP access (no fetch() needed - true isolation)
-    // Escape user code before embedding to prevent string syntax errors
-    const escapedUserCode = this.escapeUserCode(userCode)
-    // Log the escaped code for debugging (first 200 chars)
+    // User code is embedded directly as executable JavaScript (no escaping needed)
     logger.debug(
       { 
-        originalLength: userCode.length,
-        escapedLength: escapedUserCode.length,
-        preview: escapedUserCode.substring(0, 200),
+        codeLength: userCode.length,
+        preview: userCode.substring(0, 200),
       },
-      'Escaped user code for embedding',
+      'Embedding user code in worker script',
     )
     // Build worker script using string concatenation to avoid esbuild parsing issues
     // We can't mix template literals with string concatenation, so we use all string concatenation
@@ -1307,7 +1268,7 @@ mcpBindingStubs + '\n' +
 '      const executeWithTimeout = async () => {\n' +
 '        // User code is embedded below - it has access to \'mcp\' and \'env\'\n' +
 '        // User code embedded below\n' +
-escapedUserCode + '\n' +
+userCode + '\n' +
 '      };\n' +
 '\n' +
 '      const timeoutPromise = new Promise((_, reject) => \n' +
@@ -1436,67 +1397,6 @@ escapedUserCode + '\n' +
   }
 
 
-  /**
-   * Try multiple path variations to find the Worker entry point that Wrangler can resolve
-   * Returns the first path that exists, or the best guess if none exist
-   */
-  private findWorkerEntryPoint(entryPoint: string): string {
-    const cwd = process.cwd()
-    const isWindows = process.platform === 'win32'
-    
-    // Generate multiple path variations to try
-    const pathVariations: Array<{ path: string; description: string }> = [
-      // 1. Relative path (most common)
-      { path: entryPoint, description: 'relative path' },
-      
-      // 2. Absolute path (Windows and Unix)
-      { path: resolve(cwd, entryPoint), description: 'absolute path (resolve)' },
-      
-      // 3. Normalized path separators (forward slashes)
-      { path: resolve(cwd, entryPoint).replace(/\\/g, '/'), description: 'absolute path (forward slashes)' },
-      
-      // 4. Windows-style backslashes (if on Windows)
-      ...(isWindows
-        ? [{ path: resolve(cwd, entryPoint).replace(/\//g, '\\'), description: 'absolute path (backslashes)' }]
-        : []),
-      
-      // 5. Path relative to cwd with explicit ./ prefix
-      { path: `./${entryPoint}`, description: 'relative path with ./ prefix' },
-    ]
-    
-    // Check which paths actually exist
-    const existingPaths = pathVariations.filter(({ path }) => existsSync(path))
-    
-    logger.info(
-      {
-        entryPoint,
-        cwd,
-        pathVariations: pathVariations.map((p) => ({
-          path: p.path,
-          description: p.description,
-          exists: existsSync(p.path),
-        })),
-        existingPaths: existingPaths.map((p) => p.path),
-      },
-      'Testing Worker entry point path variations',
-    )
-    
-    // Return first existing path, or first variation if none exist (let Wrangler handle the error)
-    const chosenPath = existingPaths.length > 0 ? existingPaths[0].path : pathVariations[0].path
-    
-    logger.info(
-      {
-        chosenPath,
-        description: existingPaths.length > 0 
-          ? existingPaths[0].description 
-          : `fallback: ${pathVariations[0].description} (file may not exist yet)`,
-        exists: existsSync(chosenPath),
-      },
-      'Selected Worker entry point path',
-    )
-    
-    return chosenPath
-  }
 
   /**
    * Determine the correct Worker runtime entry point based on environment
