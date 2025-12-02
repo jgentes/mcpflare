@@ -618,9 +618,233 @@ export function getMCPStatus(mcpName: string): 'active' | 'disabled' | 'not_foun
   return 'not_found';
 }
 
+/**
+ * Get all configured MCP names (both active and disabled)
+ */
+export function getAllConfiguredMCPNames(): string[] {
+  const mcps = loadAllMCPServers();
+  return mcps.map(m => m.name);
+}
 
+/**
+ * Invalidate cache for a specific MCP
+ * Call this when an MCP is deleted, modified, or its guard status changes
+ * This forces a fresh assessment on the next load
+ */
+export function invalidateMCPCache(mcpName: string): { success: boolean; message: string } {
+  const settingsPath = getSettingsPath();
+  
+  if (!fs.existsSync(settingsPath)) {
+    return { success: true, message: 'No settings file exists' };
+  }
+  
+  try {
+    const content = fs.readFileSync(settingsPath, 'utf-8');
+    const settings = JSON.parse(content);
+    let changed = false;
+    
+    // Clear token metrics cache for this MCP
+    if (settings.tokenMetricsCache?.[mcpName]) {
+      delete settings.tokenMetricsCache[mcpName];
+      changed = true;
+    }
+    
+    // Clear assessment errors cache for this MCP
+    if (settings.assessmentErrorsCache?.[mcpName]) {
+      delete settings.assessmentErrorsCache[mcpName];
+      changed = true;
+    }
+    
+    if (changed) {
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+      console.log(`MCP Guard: Invalidated cache for ${mcpName}`);
+      return { success: true, message: `Cache invalidated for ${mcpName}` };
+    }
+    
+    return { success: true, message: `No cache entries found for ${mcpName}` };
+  } catch (error) {
+    console.error(`MCP Guard: Failed to invalidate cache for ${mcpName}:`, error);
+    return { success: false, message: `Failed to invalidate cache: ${error}` };
+  }
+}
 
+/**
+ * Clean up token metrics cache for MCPs that no longer exist in IDE config
+ * Call this periodically to prevent accumulation of stale cache entries
+ */
+export function cleanupTokenMetricsCache(): { removed: string[] } {
+  const settingsPath = getSettingsPath();
+  const removed: string[] = [];
+  
+  if (!fs.existsSync(settingsPath)) {
+    return { removed };
+  }
+  
+  try {
+    const content = fs.readFileSync(settingsPath, 'utf-8');
+    const settings = JSON.parse(content);
+    
+    if (!settings.tokenMetricsCache) {
+      return { removed };
+    }
+    
+    const configuredMCPs = new Set(getAllConfiguredMCPNames());
+    
+    for (const mcpName of Object.keys(settings.tokenMetricsCache)) {
+      if (!configuredMCPs.has(mcpName)) {
+        delete settings.tokenMetricsCache[mcpName];
+        removed.push(mcpName);
+      }
+    }
+    
+    // Also clean up assessment errors cache
+    if (settings.assessmentErrorsCache) {
+      for (const mcpName of Object.keys(settings.assessmentErrorsCache)) {
+        if (!configuredMCPs.has(mcpName)) {
+          delete settings.assessmentErrorsCache[mcpName];
+          if (!removed.includes(mcpName)) {
+            removed.push(mcpName);
+          }
+        }
+      }
+    }
+    
+    if (removed.length > 0) {
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+      console.log(`MCP Guard: Cleaned up cache entries for removed MCPs: ${removed.join(', ')}`);
+    }
+    
+    return { removed };
+  } catch (error) {
+    console.error('MCP Guard: Failed to clean up token metrics cache:', error);
+    return { removed };
+  }
+}
 
+/**
+ * MCP configuration for adding a new MCP
+ */
+export interface MCPConfigInput {
+  /** Command to run the MCP server (for command-based MCPs) */
+  command?: string;
+  /** Arguments for the command */
+  args?: string[];
+  /** URL for URL-based MCPs */
+  url?: string;
+  /** HTTP headers for URL-based MCPs */
+  headers?: Record<string, string>;
+  /** Environment variables */
+  env?: Record<string, string>;
+}
+
+/**
+ * Add a new MCP to the IDE config
+ * @param mcpName Name for the new MCP server
+ * @param config MCP configuration (command-based or URL-based)
+ * @returns Success status and message
+ */
+export function addMCPToIDE(mcpName: string, config: MCPConfigInput): { success: boolean; message: string } {
+  const configPath = getPrimaryIDEConfigPath();
+  
+  // If no config exists, create the default Cursor config
+  if (!configPath) {
+    const cursorConfigDir = path.join(os.homedir(), '.cursor');
+    const cursorConfigPath = path.join(cursorConfigDir, 'mcp.json');
+    
+    try {
+      if (!fs.existsSync(cursorConfigDir)) {
+        fs.mkdirSync(cursorConfigDir, { recursive: true });
+      }
+      
+      const newConfig: MCPServersConfig = {
+        mcpServers: {
+          [mcpName]: config,
+        },
+      };
+      
+      fs.writeFileSync(cursorConfigPath, JSON.stringify(newConfig, null, 2));
+      console.log(`MCP Guard: Created IDE config with ${mcpName}`);
+      return { success: true, message: `Created IDE config with ${mcpName}` };
+    } catch (error) {
+      console.error('MCP Guard: Failed to create config file:', error);
+      return { success: false, message: 'Failed to create config directory' };
+    }
+  }
+
+  const rawConfig = readRawConfigFile(configPath);
+  if (!rawConfig) {
+    return { success: false, message: 'Failed to read IDE config' };
+  }
+
+  // Check if MCP already exists (in active or disabled section)
+  if (rawConfig.mcpServers[mcpName]) {
+    return { success: false, message: `MCP "${mcpName}" already exists in IDE config` };
+  }
+  if (rawConfig._mcpguard_disabled?.[mcpName]) {
+    return { success: false, message: `MCP "${mcpName}" already exists (currently guarded)` };
+  }
+
+  // Add the new MCP
+  rawConfig.mcpServers[mcpName] = config;
+
+  if (!writeConfigFile(configPath, rawConfig)) {
+    return { success: false, message: 'Failed to write config file' };
+  }
+
+  console.log(`MCP Guard: Added ${mcpName} to IDE config`);
+  return { success: true, message: `Added ${mcpName} to IDE config` };
+}
+
+/**
+ * Delete an MCP from the IDE config entirely
+ * Removes from both active and disabled sections
+ * @param mcpName Name of the MCP server to delete
+ * @returns Success status and message
+ */
+export function deleteMCPFromIDE(mcpName: string): { success: boolean; message: string } {
+  const configPath = getPrimaryIDEConfigPath();
+  if (!configPath) {
+    return { success: false, message: 'No IDE config file found' };
+  }
+
+  const rawConfig = readRawConfigFile(configPath);
+  if (!rawConfig) {
+    return { success: false, message: 'Failed to read IDE config' };
+  }
+
+  let deleted = false;
+
+  // Remove from active MCPs
+  if (rawConfig.mcpServers[mcpName]) {
+    delete rawConfig.mcpServers[mcpName];
+    deleted = true;
+  }
+
+  // Remove from disabled MCPs
+  if (rawConfig._mcpguard_disabled?.[mcpName]) {
+    delete rawConfig._mcpguard_disabled[mcpName];
+    deleted = true;
+    
+    // Clean up disabled section if empty
+    if (Object.keys(rawConfig._mcpguard_disabled).length === 0) {
+      delete rawConfig._mcpguard_disabled;
+    }
+  }
+
+  if (!deleted) {
+    return { success: false, message: `MCP "${mcpName}" not found in IDE config` };
+  }
+
+  if (!writeConfigFile(configPath, rawConfig)) {
+    return { success: false, message: 'Failed to write config file' };
+  }
+
+  // Also invalidate the cache for this MCP
+  invalidateMCPCache(mcpName);
+
+  console.log(`MCP Guard: Deleted ${mcpName} from IDE config`);
+  return { success: true, message: `Deleted ${mcpName} from IDE config` };
+}
 
 
 

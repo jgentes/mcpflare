@@ -38,8 +38,11 @@ describe('MCP Lifecycle Integration', () => {
     const instances = manager.listInstances()
     for (const instance of instances) {
       try {
-        // Track config names for cleanup
-        testConfigCleanup.trackConfig(instance.mcp_name)
+        // Only track test configs (those with TEST_MCP_PREFIX) for cleanup
+        // Real MCPs loaded during tests should not be deleted
+        if (instance.mcp_name.startsWith('__TEST__')) {
+          testConfigCleanup.trackConfig(instance.mcp_name)
+        }
         await manager.unloadMCP(instance.mcp_id)
       } catch {
         // Ignore cleanup errors
@@ -48,6 +51,8 @@ describe('MCP Lifecycle Integration', () => {
 
     // Give processes time to fully terminate
     await new Promise((resolve) => setTimeout(resolve, 100))
+    // Clean up test configs after each test
+    testConfigCleanup.cleanup()
   })
 
   afterAll(() => {

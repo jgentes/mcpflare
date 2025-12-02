@@ -12,7 +12,10 @@ import {
 } from 'vitest'
 import type { MCPConfig } from '../../src/types/mcp.js'
 import { ConfigManager } from '../../src/utils/config-manager.js'
-import { testConfigCleanup } from '../helpers/config-cleanup.js'
+import {
+  TEST_MCP_PREFIX,
+  testConfigCleanup,
+} from '../helpers/config-cleanup.js'
 
 // Mock logger to suppress log output during tests
 vi.mock('../../src/utils/logger.js', () => ({
@@ -74,7 +77,7 @@ describe('ConfigManager', () => {
         },
       }
 
-      const configName = 'github'
+      const configName = `${TEST_MCP_PREFIX}github`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const retrieved = manager.getSavedConfig(configName)
@@ -96,7 +99,7 @@ describe('ConfigManager', () => {
         },
       }
 
-      const configName = 'simple'
+      const configName = `${TEST_MCP_PREFIX}simple`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const retrieved = manager.getSavedConfig(configName)
@@ -115,7 +118,7 @@ describe('ConfigManager', () => {
         args: ['tool'],
       }
 
-      const configName = 'no-env'
+      const configName = `${TEST_MCP_PREFIX}no-env`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const retrieved = manager.getSavedConfig(configName)
@@ -148,8 +151,8 @@ describe('ConfigManager', () => {
         args: ['tool2'],
       }
 
-      const configName1 = 'tool1'
-      const configName2 = 'tool2'
+      const configName1 = `${TEST_MCP_PREFIX}tool1`
+      const configName2 = `${TEST_MCP_PREFIX}tool2`
       testConfigCleanup.trackConfig(configName1)
       testConfigCleanup.trackConfig(configName2)
       manager.saveConfig(configName1, config1)
@@ -158,10 +161,10 @@ describe('ConfigManager', () => {
       const configs = manager.getSavedConfigs()
 
       // Should include our saved configs (may also include existing configs from system)
-      expect(configs.tool1).toBeDefined()
-      expect(configs.tool2).toBeDefined()
-      expect(configs.tool1.config.command).toBe('npx')
-      expect(configs.tool2.config.command).toBe('npx')
+      expect(configs[configName1]).toBeDefined()
+      expect(configs[configName2]).toBeDefined()
+      expect(configs[configName1].config.command).toBe('npx')
+      expect(configs[configName2].config.command).toBe('npx')
     })
 
     it('should import configs from existing file', () => {
@@ -182,7 +185,7 @@ describe('ConfigManager', () => {
 
       expect(result.imported).toBe(1)
       expect(result.errors).toHaveLength(0)
-      const importedToolName = 'imported_tool'
+      const importedToolName = `${TEST_MCP_PREFIX}imported_tool`
       testConfigCleanup.trackConfig(importedToolName)
       expect(manager.getSavedConfig(importedToolName)).toBeDefined()
       expect(manager.getCursorConfigPath()).toBe(importPath)
@@ -199,13 +202,64 @@ describe('ConfigManager', () => {
         args: ['tool'],
       }
 
-      const configName = 'tool'
+      const configName = `${TEST_MCP_PREFIX}tool`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       expect(manager.getSavedConfig(configName)).toBeDefined()
 
       const deleted = manager.deleteConfig(configName)
       expect(deleted).toBe(true)
+      expect(manager.getSavedConfig(configName)).toBeNull()
+    })
+
+    it('should delete a disabled config from _mcpguard_disabled', () => {
+      manager = new ConfigManager()
+      const initialConfig = {
+        mcpServers: {},
+        _mcpguard_disabled: {
+          [`${TEST_MCP_PREFIX}disabled-tool`]: { command: 'npx', args: ['disabled'] },
+        },
+      }
+      writeFileSync(configPath, JSON.stringify(initialConfig, null, 2))
+      manager.importConfigs(configPath)
+
+      // Verify the MCP is in the disabled section
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}disabled-tool`)).toBe(true)
+
+      // Delete it
+      const deleted = manager.deleteConfig(`${TEST_MCP_PREFIX}disabled-tool`)
+      expect(deleted).toBe(true)
+
+      // Verify it's completely gone
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}disabled-tool`)).toBe(false)
+      expect(manager.getSavedConfig(`${TEST_MCP_PREFIX}disabled-tool`)).toBeNull()
+    })
+
+    it('should delete config that was saved then disabled', () => {
+      manager = new ConfigManager()
+      manager.importConfigs(configPath)
+
+      const config: MCPConfig = {
+        command: 'npx',
+        args: ['tool'],
+      }
+
+      const configName = `${TEST_MCP_PREFIX}save-then-disable`
+      testConfigCleanup.trackConfig(configName)
+      
+      // Save and then disable (mimics what tests do)
+      manager.saveConfig(configName, config)
+      expect(manager.getSavedConfig(configName)).toBeDefined()
+      
+      manager.disableMCP(configName)
+      expect(manager.isMCPDisabled(configName)).toBe(true)
+      
+      // Now delete should work
+      const deleted = manager.deleteConfig(configName)
+      expect(deleted).toBe(true)
+      
+      // Verify it's completely gone
+      expect(manager.isMCPDisabled(configName)).toBe(false)
       expect(manager.getSavedConfig(configName)).toBeNull()
     })
 
@@ -249,7 +303,7 @@ describe('ConfigManager', () => {
         },
       }
 
-      const configName = 'test'
+      const configName = `${TEST_MCP_PREFIX}test`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const resolved = manager.getSavedConfig(configName)
@@ -269,7 +323,7 @@ describe('ConfigManager', () => {
         },
       }
 
-      const configName = 'nested'
+      const configName = `${TEST_MCP_PREFIX}nested`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const resolved = manager.getSavedConfig(configName)
@@ -288,7 +342,7 @@ describe('ConfigManager', () => {
         },
       }
 
-      const configName = 'missing'
+      const configName = `${TEST_MCP_PREFIX}missing`
       testConfigCleanup.trackConfig(configName)
       manager.saveConfig(configName, config)
       const resolved = manager.getSavedConfig(configName)
@@ -319,8 +373,8 @@ describe('ConfigManager', () => {
 
       expect(result.imported).toBe(2)
       expect(result.errors).toHaveLength(0)
-      const githubConfigName = 'github'
-      const testConfigName = 'test'
+      const githubConfigName = `${TEST_MCP_PREFIX}github`
+      const testConfigName = `${TEST_MCP_PREFIX}test`
       testConfigCleanup.trackConfig(githubConfigName)
       testConfigCleanup.trackConfig(testConfigName)
       expect(manager.getSavedConfig(githubConfigName)).toBeDefined()
@@ -415,21 +469,21 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'active-mcp': { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
           mcpguard: { command: 'npx', args: ['mcpguard'] },
         },
         _mcpguard_disabled: {
-          'disabled-mcp': { command: 'npx', args: ['disabled'] },
+          [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['disabled'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
       manager.importConfigs(configPath)
 
       const mcps = manager.getAllConfiguredMCPs()
-      expect(mcps['active-mcp']).toBeDefined()
-      expect(mcps['active-mcp'].status).toBe('active')
-      expect(mcps['disabled-mcp']).toBeDefined()
-      expect(mcps['disabled-mcp'].status).toBe('disabled')
+      expect(mcps[`${TEST_MCP_PREFIX}active-mcp`]).toBeDefined()
+      expect(mcps[`${TEST_MCP_PREFIX}active-mcp`].status).toBe('active')
+      expect(mcps[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
+      expect(mcps[`${TEST_MCP_PREFIX}disabled-mcp`].status).toBe('disabled')
       expect(mcps['mcpguard']).toBeUndefined() // Should exclude mcpguard
     })
   })
@@ -446,19 +500,19 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'mcp-1': { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
           mcpguard: { command: 'npx', args: ['mcpguard'] },
         },
         _mcpguard_disabled: {
-          'mcp-2': { command: 'npx', args: ['disabled'] },
+          [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['disabled'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
       manager.importConfigs(configPath)
 
       const configs = manager.getGuardedMCPConfigs()
-      expect(configs['mcp-1']).toBeDefined()
-      expect(configs['mcp-2']).toBeDefined()
+      expect(configs[`${TEST_MCP_PREFIX}mcp-1`]).toBeDefined()
+      expect(configs[`${TEST_MCP_PREFIX}mcp-2`]).toBeDefined()
       expect(configs['mcpguard']).toBeUndefined()
     })
   })
@@ -478,8 +532,8 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'mcp-1': { command: 'node', args: ['server.js'] },
-          'mcp-2': { command: 'npx', args: ['test'] },
+          [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['test'] },
           mcpguard: { command: 'npx', args: ['mcpguard'] },
         },
       }
@@ -488,22 +542,22 @@ describe('ConfigManager', () => {
 
       const result = manager.disableAllExceptMCPGuard()
       expect(result.disabled.length).toBe(2)
-      expect(result.disabled).toContain('mcp-1')
-      expect(result.disabled).toContain('mcp-2')
+      expect(result.disabled).toContain(`${TEST_MCP_PREFIX}mcp-1`)
+      expect(result.disabled).toContain(`${TEST_MCP_PREFIX}mcp-2`)
       expect(result.disabled).not.toContain('mcpguard')
       expect(result.mcpguardRestored).toBe(false)
 
       // Verify MCPs are disabled
       const disabled = manager.getDisabledMCPs()
-      expect(disabled).toContain('mcp-1')
-      expect(disabled).toContain('mcp-2')
+      expect(disabled).toContain(`${TEST_MCP_PREFIX}mcp-1`)
+      expect(disabled).toContain(`${TEST_MCP_PREFIX}mcp-2`)
     })
 
     it('should restore mcpguard if it is disabled', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'mcp-1': { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
         },
         _mcpguard_disabled: {
           mcpguard: { command: 'npx', args: ['mcpguard'] },
@@ -531,8 +585,8 @@ describe('ConfigManager', () => {
       const config = {
         mcpServers: {},
         _mcpguard_disabled: {
-          'mcp-1': { command: 'node', args: ['server.js'] },
-          'mcp-2': { command: 'npx', args: ['test'] },
+          [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['test'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
@@ -540,12 +594,12 @@ describe('ConfigManager', () => {
 
       const restored = manager.restoreAllDisabled()
       expect(restored.length).toBe(2)
-      expect(restored).toContain('mcp-1')
-      expect(restored).toContain('mcp-2')
+      expect(restored).toContain(`${TEST_MCP_PREFIX}mcp-1`)
+      expect(restored).toContain(`${TEST_MCP_PREFIX}mcp-2`)
 
       // Verify MCPs are no longer disabled
-      expect(manager.isMCPDisabled('mcp-1')).toBe(false)
-      expect(manager.isMCPDisabled('mcp-2')).toBe(false)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}mcp-1`)).toBe(false)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}mcp-2`)).toBe(false)
     })
   })
 
@@ -561,11 +615,11 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'active-mcp': { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
         },
         _mcpguard_disabled: {
-          'disabled-1': { command: 'npx', args: ['test1'] },
-          'disabled-2': { command: 'npx', args: ['test2'] },
+          [`${TEST_MCP_PREFIX}disabled-1`]: { command: 'npx', args: ['test1'] },
+          [`${TEST_MCP_PREFIX}disabled-2`]: { command: 'npx', args: ['test2'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
@@ -573,15 +627,15 @@ describe('ConfigManager', () => {
 
       const disabled = manager.getDisabledMCPs()
       expect(disabled.length).toBe(2)
-      expect(disabled).toContain('disabled-1')
-      expect(disabled).toContain('disabled-2')
+      expect(disabled).toContain(`${TEST_MCP_PREFIX}disabled-1`)
+      expect(disabled).toContain(`${TEST_MCP_PREFIX}disabled-2`)
     })
   })
 
   describe('isMCPDisabled', () => {
     it('should return false when no config loaded', () => {
       manager = new ConfigManager()
-      expect(manager.isMCPDisabled('test-mcp')).toBe(false)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}test-mcp`)).toBe(false)
     })
 
     it('should return true for disabled MCP', () => {
@@ -589,13 +643,13 @@ describe('ConfigManager', () => {
       const config = {
         mcpServers: {},
         _mcpguard_disabled: {
-          'disabled-mcp': { command: 'npx', args: ['test'] },
+          [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['test'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
       manager.importConfigs(configPath)
 
-      expect(manager.isMCPDisabled('disabled-mcp')).toBe(true)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}disabled-mcp`)).toBe(true)
       expect(manager.isMCPDisabled('nonexistent')).toBe(false)
     })
   })
@@ -612,10 +666,10 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
-          'active-mcp': { command: 'node', args: ['server.js'] },
+          [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
         },
         _mcpguard_disabled: {
-          'disabled-mcp': { command: 'npx', args: ['test'] },
+          [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['test'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
@@ -623,8 +677,8 @@ describe('ConfigManager', () => {
 
       const rawConfig = manager.getRawConfig()
       expect(rawConfig).toBeDefined()
-      expect(rawConfig?.mcpServers['active-mcp']).toBeDefined()
-      expect(rawConfig?._mcpguard_disabled?.['disabled-mcp']).toBeDefined()
+      expect(rawConfig?.mcpServers[`${TEST_MCP_PREFIX}active-mcp`]).toBeDefined()
+      expect(rawConfig?._mcpguard_disabled?.[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
     })
   })
 })

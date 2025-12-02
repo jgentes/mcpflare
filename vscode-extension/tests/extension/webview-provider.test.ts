@@ -169,16 +169,22 @@ describe('MCPGuardWebviewProvider', () => {
         });
       });
 
-      it('should send error on invalid JSON', async () => {
+      it('should send default settings on invalid JSON (graceful fallback)', async () => {
+        // Note: Invalid JSON now falls back to defaults instead of throwing error
+        // This is because loadSettingsWithHydration catches parse errors
         const settingsPath = getSettingsPath();
         addMockFile(settingsPath, '{ invalid json }');
 
         await messageHandler({ type: 'getSettings' });
 
+        // Should send default settings instead of error
         expect(mockView.webview.postMessage).toHaveBeenCalledWith(
           expect.objectContaining({
-            type: 'error',
-            message: expect.stringContaining('Failed to load settings'),
+            type: 'settings',
+            data: expect.objectContaining({
+              enabled: true,
+              mcpConfigs: [],
+            }),
           })
         );
       });
@@ -308,15 +314,16 @@ describe('MCPGuardWebviewProvider', () => {
         );
       });
 
-      it('should update existing MCP config', async () => {
+      it('should update existing MCP config (isGuarded NOT saved)', async () => {
+        // Note: isGuarded is NOT stored in settings.json - it's derived from IDE config
         const settingsPath = getSettingsPath();
-        const existingSettings: MCPGuardSettings = {
+        const existingSettings = {
           enabled: true,
           defaults: DEFAULT_SETTINGS.defaults,
           mcpConfigs: [{
             id: 'existing-id',
             mcpName: 'existing-mcp',
-            isGuarded: false,
+            // isGuarded is NOT stored in the file
             ...DEFAULT_SETTINGS.defaults,
             lastModified: '2024-01-01T00:00:00Z',
           }],
@@ -326,17 +333,20 @@ describe('MCPGuardWebviewProvider', () => {
         const updatedConfig: MCPSecurityConfig = {
           id: 'existing-id',
           mcpName: 'existing-mcp',
-          isGuarded: true,
+          isGuarded: true, // This will trigger IDE config update, but NOT be saved
           ...DEFAULT_SETTINGS.defaults,
           lastModified: new Date().toISOString(),
         };
 
         await messageHandler({ type: 'saveMCPConfig', data: updatedConfig });
 
-        // Should update the existing config
+        // Should update the existing config - but isGuarded is NOT saved
         const savedContent = getMockFileContent(settingsPath);
         const saved = JSON.parse(savedContent!);
-        expect(saved.mcpConfigs[0].isGuarded).toBe(true);
+        // isGuarded should NOT be in saved file (it's derived from IDE config)
+        expect(saved.mcpConfigs[0].isGuarded).toBeUndefined();
+        // Security settings should still be saved
+        expect(saved.mcpConfigs[0].network).toBeDefined();
       });
 
       it('should handle guard status change', async () => {
@@ -387,6 +397,120 @@ describe('MCPGuardWebviewProvider', () => {
           type: 'mcpServers',
           data: expect.any(Array),
         });
+      });
+    });
+
+    describe('addMCP message', () => {
+      it('should add command-based MCP to config', async () => {
+        const cursorPath = getTestConfigPath('cursor');
+        addMockFile(cursorPath, createSampleMCPConfig({}));
+
+        await messageHandler({
+          type: 'addMCP',
+          name: 'new-test-mcp',
+          config: {
+            command: 'node',
+            args: ['server.js'],
+          },
+        });
+
+        // Should send success message
+        expect(mockView.webview.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'success',
+            message: expect.stringContaining('Added new-test-mcp'),
+          })
+        );
+      });
+
+      it('should add URL-based MCP with headers', async () => {
+        const cursorPath = getTestConfigPath('cursor');
+        addMockFile(cursorPath, createSampleMCPConfig({}));
+
+        await messageHandler({
+          type: 'addMCP',
+          name: 'github-mcp',
+          config: {
+            url: 'https://api.github.com/mcp/',
+            headers: { Authorization: 'Bearer test-token' },
+          },
+        });
+
+        // Should send success message
+        expect(mockView.webview.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'success',
+          })
+        );
+      });
+
+      it('should fail when MCP name is empty', async () => {
+        const cursorPath = getTestConfigPath('cursor');
+        addMockFile(cursorPath, createSampleMCPConfig({}));
+
+        await messageHandler({
+          type: 'addMCP',
+          name: '',
+          config: { command: 'node' },
+        });
+
+        // Should send error message
+        expect(mockView.webview.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'error',
+            message: expect.stringContaining('name is required'),
+          })
+        );
+      });
+
+      it('should fail when neither command nor URL provided', async () => {
+        const cursorPath = getTestConfigPath('cursor');
+        addMockFile(cursorPath, createSampleMCPConfig({}));
+
+        await messageHandler({
+          type: 'addMCP',
+          name: 'invalid-mcp',
+          config: {},
+        });
+
+        // Should send error message
+        expect(mockView.webview.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'error',
+            message: expect.stringContaining('command or URL'),
+          })
+        );
+      });
+    });
+
+    describe('invalidateCache message', () => {
+      it('should invalidate cache for specific MCP', async () => {
+        const settingsPath = getSettingsPath();
+        addMockFile(settingsPath, JSON.stringify({
+          enabled: true,
+          defaults: DEFAULT_SETTINGS.defaults,
+          mcpConfigs: [],
+          tokenMetricsCache: {
+            'test-mcp': { toolCount: 5, schemaChars: 1000, estimatedTokens: 286, assessedAt: '2024-01-01' },
+          },
+        }));
+
+        await messageHandler({
+          type: 'invalidateCache',
+          mcpName: 'test-mcp',
+        });
+
+        // Should send success message
+        expect(mockView.webview.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'success',
+          })
+        );
+
+        // Verify cache was cleared
+        const savedContent = getMockFileContent(settingsPath);
+        const saved = JSON.parse(savedContent!);
+        expect(saved.tokenMetricsCache['test-mcp']).toBeUndefined();
       });
     });
   });

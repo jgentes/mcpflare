@@ -596,13 +596,36 @@ export class ConfigManager {
       return false
     }
 
-    const existingConfig = this.readConfigFile(this.configPath)
+    // Read raw config to access both active and disabled sections
+    const existingConfig = this.readRawConfigFile(this.configPath)
 
-    if (!existingConfig || !existingConfig.mcpServers[mcpName]) {
+    if (!existingConfig) {
       return false
     }
 
-    delete existingConfig.mcpServers[mcpName]
+    let deleted = false
+
+    // Delete from active mcpServers
+    if (existingConfig.mcpServers[mcpName]) {
+      delete existingConfig.mcpServers[mcpName]
+      deleted = true
+    }
+
+    // Also delete from disabled section (_mcpguard_disabled)
+    if (existingConfig._mcpguard_disabled?.[mcpName]) {
+      delete existingConfig._mcpguard_disabled[mcpName]
+      deleted = true
+
+      // Clean up disabled section if empty
+      if (Object.keys(existingConfig._mcpguard_disabled).length === 0) {
+        delete existingConfig._mcpguard_disabled
+      }
+    }
+
+    if (!deleted) {
+      return false
+    }
+
     this.writeConfigFile(this.configPath, existingConfig)
 
     const ide = this.ideDefinitions.find((d) => d.id === this.configSource)

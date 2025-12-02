@@ -2,11 +2,32 @@ import type { WorkerManager } from '../../src/server/worker-manager.js'
 import { ConfigManager } from '../../src/utils/config-manager.js'
 
 /**
+ * Prefix that ALL test MCP config names MUST use
+ * This ensures test configs never conflict with real user configurations
+ */
+export const TEST_MCP_PREFIX = '__TEST__'
+
+/**
+ * Validate that an MCP name uses the test prefix
+ * Throws an error if the name doesn't start with the prefix
+ */
+export function validateTestMCPName(mcpName: string): void {
+  if (!mcpName.startsWith(TEST_MCP_PREFIX)) {
+    throw new Error(
+      `Test MCP name "${mcpName}" must start with "${TEST_MCP_PREFIX}" to prevent conflicts with real configs. ` +
+        `Use "${TEST_MCP_PREFIX}${mcpName}" instead.`,
+    )
+  }
+}
+
+/**
  * Test helper to track and clean up MCP configs created during tests
  *
  * IMPORTANT: Only configs explicitly tracked via trackConfig() will be deleted.
  * This prevents accidentally deleting real user configurations.
  * Tests MUST call trackConfig() for every config they create.
+ * 
+ * ALL test MCP names MUST use the TEST_MCP_PREFIX to prevent conflicts.
  */
 export class TestConfigCleanup {
   private configManager: ConfigManager
@@ -22,8 +43,11 @@ export class TestConfigCleanup {
    *
    * Tests MUST call this for every config they create to prevent
    * accidentally deleting real user configurations.
+   * 
+   * The MCP name MUST start with TEST_MCP_PREFIX to prevent conflicts.
    */
   trackConfig(mcpName: string): void {
+    validateTestMCPName(mcpName)
     this.testConfigNames.add(mcpName)
   }
 
@@ -33,14 +57,29 @@ export class TestConfigCleanup {
    * This only deletes configs that were explicitly tracked via trackConfig().
    * We do NOT use string matching or heuristics to avoid accidentally
    * deleting real user configurations (e.g., a real "github" MCP).
+   * 
+   * Also validates that all tracked names use the test prefix as a safety check.
    */
   cleanup(): void {
     if (this.testConfigNames.size === 0) {
       return
     }
 
-    // Delete only tracked configs
+    // Double-check all names use the prefix (safety check)
     for (const mcpName of this.testConfigNames) {
+      if (!mcpName.startsWith(TEST_MCP_PREFIX)) {
+        console.error(
+          `WARNING: Attempting to cleanup non-test MCP "${mcpName}". Skipping to prevent data loss.`,
+        )
+        continue
+      }
+    }
+
+    // Delete only tracked configs that use the test prefix
+    for (const mcpName of this.testConfigNames) {
+      if (!mcpName.startsWith(TEST_MCP_PREFIX)) {
+        continue // Skip non-prefixed names
+      }
       try {
         this.configManager.deleteConfig(mcpName)
       } catch {

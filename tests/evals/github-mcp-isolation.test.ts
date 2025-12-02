@@ -9,7 +9,10 @@ import {
 } from 'vitest'
 import { MCPHandler } from '../../src/server/mcp-handler.js'
 import { ConfigManager } from '../../src/utils/config-manager.js'
-import { testConfigCleanup } from '../helpers/config-cleanup.js'
+import {
+  TEST_MCP_PREFIX,
+  testConfigCleanup,
+} from '../helpers/config-cleanup.js'
 
 // Mock logger
 vi.mock('../../src/utils/logger.js', () => ({
@@ -25,7 +28,7 @@ vi.mock('../../src/utils/logger.js', () => ({
 describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
   let handler: MCPHandler
   let configManager: ConfigManager
-  const testMCPName = 'github-eval-test'
+  const testMCPName = `${TEST_MCP_PREFIX}github-eval-test`
 
   beforeEach(() => {
     handler = new MCPHandler()
@@ -38,10 +41,12 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
   afterEach(async () => {
     // Give processes time to fully terminate
     await new Promise((resolve) => setTimeout(resolve, 100))
+    // Clean up test configs after each test to prevent accumulation
+    testConfigCleanup.cleanup()
   })
 
   afterAll(() => {
-    // Clean up any MCP configs that were saved during tests
+    // Final cleanup in case any tests failed before cleanup
     testConfigCleanup.cleanup()
   })
 

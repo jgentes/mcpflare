@@ -1,4 +1,5 @@
-import { testConfigCleanup, cleanupWorkerManagers } from './config-cleanup.js';
+import { ConfigManager } from '../../src/utils/config-manager.js';
+import { TEST_MCP_PREFIX, testConfigCleanup, cleanupWorkerManagers } from './config-cleanup.js';
 
 /**
  * Global teardown hook for Vitest
@@ -15,6 +16,41 @@ export default async function globalTeardown() {
     
     // Clean up any MCP configs that were saved during tests
     testConfigCleanup.cleanup();
+    
+    // Safety net: Also clean up any configs with the test prefix that might have been missed
+    // This is a fallback in case trackConfig() wasn't called for some reason
+    try {
+      const configManager = new ConfigManager();
+      const allConfigs = configManager.getSavedConfigs();
+      for (const [mcpName] of Object.entries(allConfigs)) {
+        if (mcpName.startsWith(TEST_MCP_PREFIX)) {
+          console.log(`[Global Teardown] Cleaning up leftover test config: ${mcpName}`);
+          try {
+            configManager.deleteConfig(mcpName);
+          } catch {
+            // Ignore errors (config might already be deleted)
+          }
+        }
+      }
+      
+      // Also check disabled MCPs
+      const disabledMCPs = configManager.getDisabledMCPs();
+      for (const mcpName of disabledMCPs) {
+        if (mcpName.startsWith(TEST_MCP_PREFIX)) {
+          console.log(`[Global Teardown] Cleaning up leftover disabled test config: ${mcpName}`);
+          try {
+            // Re-enable it first, then delete it
+            configManager.enableMCP(mcpName);
+            configManager.deleteConfig(mcpName);
+          } catch {
+            // Ignore errors
+          }
+        }
+      }
+    } catch (error) {
+      // Don't fail teardown if cleanup fails
+      console.warn('[Global Teardown] Error during safety net cleanup:', error);
+    }
   } catch (error) {
     // Ensure teardown doesn't fail silently
     console.error('Error in global teardown:', error);

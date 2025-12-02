@@ -13,6 +13,7 @@ import { postMessage } from './hooks'
 import type {
   ConnectionTestResult,
   ConnectionTestStep,
+  MCPConfigInput,
   MCPGuardSettings,
   MCPSecurityConfig,
   MCPServerInfo,
@@ -2605,15 +2606,255 @@ export const MCPCard: React.FC<MCPCardProps> = ({
             </div>
           </CollapsibleSection>
 
-          {/* Save Button */}
+          {/* Configuration Details */}
+          <CollapsibleSection
+            title="Configuration Details"
+            icon={<InfoIcon size={16} className={undefined} />}
+            defaultOpen={false}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                fontSize: '11px',
+              }}
+            >
+              {/* Command-based MCP */}
+              {server.command && (
+                <div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Command
+                  </div>
+                  <code
+                    style={{
+                      background: 'var(--bg-primary)',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'block',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {server.command}
+                    {server.args && server.args.length > 0 && (
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {' '}
+                        {server.args.join(' ')}
+                      </span>
+                    )}
+                  </code>
+                </div>
+              )}
+
+              {/* URL-based MCP */}
+              {server.url && (
+                <div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    URL
+                  </div>
+                  <code
+                    style={{
+                      background: 'var(--bg-primary)',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'block',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {server.url}
+                  </code>
+                </div>
+              )}
+
+              {/* Headers */}
+              {server.headers && Object.keys(server.headers).length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Headers
+                  </div>
+                  <div
+                    style={{
+                      background: 'var(--bg-primary)',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    {Object.entries(server.headers).map(([key, value]) => (
+                      <div key={key} style={{ marginBottom: '2px' }}>
+                        <span style={{ color: '#8b5cf6' }}>{key}:</span>{' '}
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {maskSensitiveValue(key, value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Environment Variables */}
+              {server.env && Object.keys(server.env).length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Environment Variables
+                  </div>
+                  <div
+                    style={{
+                      background: 'var(--bg-primary)',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    {Object.entries(server.env).map(([key, value]) => (
+                      <div key={key} style={{ marginBottom: '2px' }}>
+                        <span style={{ color: '#22c55e' }}>{key}=</span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          {maskSensitiveValue(key, value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Source */}
+              <div>
+                <div
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Source
+                </div>
+                <span
+                  style={{
+                    color: 'var(--text-secondary)',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {server.source} IDE configuration
+                </span>
+              </div>
+
+              {/* Edit Config Button */}
+              <button
+                onClick={() =>
+                  postMessage({
+                    type: 'openIDEConfig',
+                    source: server.source,
+                  })
+                }
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                Edit in IDE Config
+              </button>
+            </div>
+          </CollapsibleSection>
+
+          {/* Action Buttons */}
           <div
             style={{
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               gap: '8px',
               marginTop: '8px',
+              paddingTop: '12px',
+              borderTop: '1px solid var(--border-color)',
             }}
           >
+            {/* Danger Zone */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() =>
+                  postMessage({
+                    type: 'invalidateCache',
+                    mcpName: server.name,
+                  })
+                }
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+                title="Clear cached token metrics and assessment data"
+              >
+                Clear Cache
+              </button>
+              <button
+                onClick={() =>
+                  postMessage({
+                    type: 'deleteMCP',
+                    mcpName: server.name,
+                  })
+                }
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  background: 'transparent',
+                  color: 'var(--error)',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+                title="Remove this MCP from IDE configuration"
+              >
+                Delete MCP
+              </button>
+            </div>
+
+            {/* Save */}
             <Button
               variant="primary"
               onClick={() => onConfigChange(currentConfig)}
@@ -2626,6 +2867,37 @@ export const MCPCard: React.FC<MCPCardProps> = ({
       )}
     </div>
   )
+}
+
+/**
+ * Mask sensitive values in headers/env for display
+ */
+function maskSensitiveValue(key: string, value: string): string {
+  const sensitiveKeys = [
+    'authorization',
+    'token',
+    'key',
+    'secret',
+    'password',
+    'api_key',
+    'apikey',
+    'bearer',
+  ]
+  const lowerKey = key.toLowerCase()
+
+  if (sensitiveKeys.some((s) => lowerKey.includes(s))) {
+    // Show first few characters then mask
+    if (value.length <= 8) {
+      return '***'
+    }
+    // For Bearer tokens, show "Bearer ***"
+    if (value.toLowerCase().startsWith('bearer ')) {
+      return 'Bearer ***'
+    }
+    return value.substring(0, 4) + '***'
+  }
+
+  return value
 }
 
 // ====================
@@ -4423,6 +4695,495 @@ export const TestingTab: React.FC<TestingTabProps> = ({
           isGuarded={selectedMCPIsGuarded}
         />
       )}
+    </div>
+  )
+}
+
+// ====================
+// Add MCP Modal
+// ====================
+
+interface AddMCPModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (name: string, config: MCPConfigInput) => void
+}
+
+export const AddMCPModal: React.FC<AddMCPModalProps> = ({
+  isOpen,
+  onClose,
+  onAdd,
+}) => {
+  const [name, setName] = useState('')
+  const [type, setType] = useState<'command' | 'url'>('command')
+  const [command, setCommand] = useState('')
+  const [args, setArgs] = useState('')
+  const [url, setUrl] = useState('')
+  const [headers, setHeaders] = useState('')
+  const [env, setEnv] = useState('')
+  const [error, setError] = useState('')
+
+  const resetForm = () => {
+    setName('')
+    setType('command')
+    setCommand('')
+    setArgs('')
+    setUrl('')
+    setHeaders('')
+    setEnv('')
+    setError('')
+  }
+
+  const handleClose = () => {
+    resetForm()
+    onClose()
+  }
+
+  const handleSubmit = () => {
+    // Validate
+    if (!name.trim()) {
+      setError('MCP name is required')
+      return
+    }
+
+    if (type === 'command' && !command.trim()) {
+      setError('Command is required for command-based MCPs')
+      return
+    }
+
+    if (type === 'url' && !url.trim()) {
+      setError('URL is required for URL-based MCPs')
+      return
+    }
+
+    // Parse headers
+    let parsedHeaders: Record<string, string> | undefined
+    if (headers.trim()) {
+      try {
+        parsedHeaders = JSON.parse(headers)
+      } catch {
+        // Try key: value format
+        parsedHeaders = {}
+        const lines = headers.split('\n')
+        for (const line of lines) {
+          const [key, ...valueParts] = line.split(':')
+          if (key && valueParts.length > 0) {
+            parsedHeaders[key.trim()] = valueParts.join(':').trim()
+          }
+        }
+      }
+    }
+
+    // Parse env
+    let parsedEnv: Record<string, string> | undefined
+    if (env.trim()) {
+      try {
+        parsedEnv = JSON.parse(env)
+      } catch {
+        // Try KEY=value format
+        parsedEnv = {}
+        const lines = env.split('\n')
+        for (const line of lines) {
+          const [key, ...valueParts] = line.split('=')
+          if (key && valueParts.length > 0) {
+            parsedEnv[key.trim()] = valueParts.join('=').trim()
+          }
+        }
+      }
+    }
+
+    // Build config
+    const config: MCPConfigInput = {}
+
+    if (type === 'command') {
+      config.command = command.trim()
+      if (args.trim()) {
+        config.args = args.split(/\s+/).filter((a) => a)
+      }
+    } else {
+      config.url = url.trim()
+      if (parsedHeaders && Object.keys(parsedHeaders).length > 0) {
+        config.headers = parsedHeaders
+      }
+    }
+
+    if (parsedEnv && Object.keys(parsedEnv).length > 0) {
+      config.env = parsedEnv
+    }
+
+    onAdd(name.trim(), config)
+    handleClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={handleClose}
+    >
+      <div
+        style={{
+          background: 'var(--bg-primary)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)',
+          width: '90%',
+          maxWidth: '480px',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: '16px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <PlusIcon size={18} />
+            Add MCP Server
+          </h2>
+          <button
+            onClick={handleClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: '20px',
+              padding: '4px',
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Content */}
+        <div
+          style={{
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          {/* Error */}
+          {error && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: 'var(--error)',
+                fontSize: '12px',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {/* Name */}
+          <div>
+            <label
+              style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                display: 'block',
+                marginBottom: '6px',
+              }}
+            >
+              MCP Name *
+            </label>
+            <Input
+              value={name}
+              onChange={setName}
+              placeholder="e.g., github, filesystem, my-custom-mcp"
+            />
+            <div
+              style={{
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                marginTop: '4px',
+              }}
+            >
+              Unique identifier for this MCP server
+            </div>
+          </div>
+
+          {/* Type Selector */}
+          <div>
+            <label
+              style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                display: 'block',
+                marginBottom: '6px',
+              }}
+            >
+              MCP Type
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setType('command')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: 'var(--radius-sm)',
+                  border:
+                    type === 'command'
+                      ? '2px solid #22c55e'
+                      : '1px solid var(--border-color)',
+                  background:
+                    type === 'command'
+                      ? 'rgba(34, 197, 94, 0.1)'
+                      : 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: type === 'command' ? 600 : 400,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <TerminalIcon size={16} />
+                <div style={{ marginTop: '4px' }}>Command</div>
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    marginTop: '2px',
+                  }}
+                >
+                  Local process
+                </div>
+              </button>
+              <button
+                onClick={() => setType('url')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: 'var(--radius-sm)',
+                  border:
+                    type === 'url'
+                      ? '2px solid #22c55e'
+                      : '1px solid var(--border-color)',
+                  background:
+                    type === 'url'
+                      ? 'rgba(34, 197, 94, 0.1)'
+                      : 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: type === 'url' ? 600 : 400,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <NetworkIcon size={16} />
+                <div style={{ marginTop: '4px' }}>URL</div>
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    marginTop: '2px',
+                  }}
+                >
+                  Remote server
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Command-based fields */}
+          {type === 'command' && (
+            <>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Command *
+                </label>
+                <Input
+                  value={command}
+                  onChange={setCommand}
+                  placeholder="e.g., node, npx, python"
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Arguments
+                </label>
+                <Input
+                  value={args}
+                  onChange={setArgs}
+                  placeholder="e.g., /path/to/server.js --port 8080"
+                />
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    marginTop: '4px',
+                  }}
+                >
+                  Space-separated arguments
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* URL-based fields */}
+          {type === 'url' && (
+            <>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  URL *
+                </label>
+                <Input
+                  value={url}
+                  onChange={setUrl}
+                  placeholder="e.g., https://api.example.com/mcp/"
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Headers
+                </label>
+                <textarea
+                  value={headers}
+                  onChange={(e) => setHeaders(e.target.value)}
+                  placeholder={'Authorization: Bearer YOUR_TOKEN\nX-Custom-Header: value'}
+                  style={{
+                    width: '100%',
+                    minHeight: '60px',
+                    padding: '8px 10px',
+                    fontSize: '12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    resize: 'vertical',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    marginTop: '4px',
+                  }}
+                >
+                  One per line: Header-Name: value
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Environment Variables (both types) */}
+          <div>
+            <label
+              style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                display: 'block',
+                marginBottom: '6px',
+              }}
+            >
+              Environment Variables
+            </label>
+            <textarea
+              value={env}
+              onChange={(e) => setEnv(e.target.value)}
+              placeholder={'API_KEY=your_api_key\nDEBUG=true'}
+              style={{
+                width: '100%',
+                minHeight: '60px',
+                padding: '8px 10px',
+                fontSize: '12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                resize: 'vertical',
+                fontFamily: 'monospace',
+              }}
+            />
+            <div
+              style={{
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                marginTop: '4px',
+              }}
+            >
+              One per line: KEY=value
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '8px',
+          }}
+        >
+          <Button variant="ghost" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSubmit}>
+            <PlusIcon size={14} />
+            Add MCP
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

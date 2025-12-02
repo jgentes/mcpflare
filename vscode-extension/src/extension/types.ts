@@ -39,15 +39,15 @@ export interface ResourceLimits {
 }
 
 /**
- * Security settings for an MCP server
+ * Security settings for an MCP server (stored format - without isGuarded)
+ * isGuarded is derived from IDE config, not stored in settings.json
  */
-export interface MCPSecurityConfig {
+export interface MCPSecurityConfigStored {
   /** Unique identifier for this configuration */
   id: string;
   /** Name of the MCP server */
   mcpName: string;
-  /** Whether this MCP is guarded by MCP Guard */
-  isGuarded: boolean;
+  // isGuarded is NOT stored - it's derived from IDE config (_mcpguard_disabled)
   /** Network access configuration */
   network: NetworkConfig;
   /** File system access configuration */
@@ -56,6 +56,15 @@ export interface MCPSecurityConfig {
   resourceLimits: ResourceLimits;
   /** Last modified timestamp */
   lastModified: string;
+}
+
+/**
+ * Security settings for an MCP server (with computed isGuarded)
+ * isGuarded is derived from whether the MCP is in _mcpguard_disabled in IDE config
+ */
+export interface MCPSecurityConfig extends MCPSecurityConfigStored {
+  /** Computed from IDE config - true if MCP is in _mcpguard_disabled */
+  isGuarded: boolean;
 }
 
 /**
@@ -149,14 +158,32 @@ export interface AssessmentErrorsCache {
 }
 
 /**
- * Global MCP Guard settings
+ * Global MCP Guard settings (stored format)
+ */
+export interface MCPGuardSettingsStored {
+  /** Whether MCP Guard is globally enabled */
+  enabled: boolean;
+  /** Default security settings for new MCPs */
+  defaults: Omit<MCPSecurityConfigStored, 'id' | 'mcpName' | 'lastModified'>;
+  /** Per-MCP configurations (without isGuarded - it's derived from IDE config) */
+  mcpConfigs: MCPSecurityConfigStored[];
+  /** Cached token metrics for MCPs (assessed once per MCP) */
+  tokenMetricsCache?: TokenMetricsCache;
+  /** Cached assessment errors for MCPs */
+  assessmentErrorsCache?: AssessmentErrorsCache;
+  /** Context window size in tokens (default: 200000) */
+  contextWindowSize?: number;
+}
+
+/**
+ * Global MCP Guard settings (with computed isGuarded)
  */
 export interface MCPGuardSettings {
   /** Whether MCP Guard is globally enabled */
   enabled: boolean;
   /** Default security settings for new MCPs */
   defaults: Omit<MCPSecurityConfig, 'id' | 'mcpName' | 'isGuarded' | 'lastModified'>;
-  /** Per-MCP configurations */
+  /** Per-MCP configurations (isGuarded derived from IDE config) */
   mcpConfigs: MCPSecurityConfig[];
   /** Cached token metrics for MCPs (assessed once per MCP) */
   tokenMetricsCache?: TokenMetricsCache;
@@ -164,6 +191,22 @@ export interface MCPGuardSettings {
   assessmentErrorsCache?: AssessmentErrorsCache;
   /** Context window size in tokens (default: 200000) */
   contextWindowSize?: number;
+}
+
+/**
+ * MCP configuration for adding a new MCP
+ */
+export interface MCPConfigInput {
+  /** Command to run the MCP server (for command-based MCPs) */
+  command?: string;
+  /** Arguments for the command */
+  args?: string[];
+  /** URL for URL-based MCPs */
+  url?: string;
+  /** HTTP headers for URL-based MCPs */
+  headers?: Record<string, string>;
+  /** Environment variables */
+  env?: Record<string, string>;
 }
 
 /**
@@ -182,7 +225,10 @@ export type WebviewMessage =
   | { type: 'retryAssessment'; mcpName: string }
   | { type: 'openLogs' }
   | { type: 'testConnection'; mcpName: string }
-  | { type: 'openExternalLink'; url: string };
+  | { type: 'openExternalLink'; url: string }
+  | { type: 'deleteMCP'; mcpName: string }
+  | { type: 'addMCP'; name: string; config: MCPConfigInput }
+  | { type: 'invalidateCache'; mcpName: string };
 
 /**
  * Token savings summary data
@@ -254,7 +300,7 @@ export type ExtensionMessage =
 /**
  * Default security configuration
  */
-export const DEFAULT_SECURITY_CONFIG: Omit<MCPSecurityConfig, 'id' | 'mcpName' | 'isGuarded' | 'lastModified'> = {
+export const DEFAULT_SECURITY_CONFIG: Omit<MCPSecurityConfigStored, 'id' | 'mcpName' | 'lastModified'> = {
   network: {
     enabled: false,
     allowlist: [],

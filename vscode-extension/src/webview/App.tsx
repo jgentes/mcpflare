@@ -4,8 +4,8 @@
 
 import React, { useState } from 'react';
 import { useSettings, useMCPServers, useNotifications, useTokenSavings, useConnectionTest, postMessage } from './hooks';
-import { Header, MCPCard, EmptyState, Notification, Button, ShieldIcon, ShieldOffIcon, BeakerIcon, TestingTab, TokenSavingsBadge, ConnectionTestModal } from './components';
-import type { MCPSecurityConfig, MCPGuardSettings } from './types';
+import { Header, MCPCard, EmptyState, Notification, Button, ShieldIcon, ShieldOffIcon, BeakerIcon, TestingTab, TokenSavingsBadge, ConnectionTestModal, AddMCPModal, PlusIcon } from './components';
+import type { MCPSecurityConfig, MCPGuardSettings, MCPConfigInput } from './types';
 
 export const App: React.FC = () => {
   const { settings, saveSettings, saveMCPConfig, isLoading: settingsLoading } = useSettings();
@@ -15,6 +15,7 @@ export const App: React.FC = () => {
   const { testingMCP, currentStep, testResult, testConnection, openLogs, clearResult } = useConnectionTest();
   const [showTestingTab, setShowTestingTab] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
+  const [showAddMCPModal, setShowAddMCPModal] = useState(false);
 
   const isLoading = settingsLoading || serversLoading;
   const isAssessingTokens = assessingMCPs.size > 0;
@@ -44,6 +45,11 @@ export const App: React.FC = () => {
   const handleCloseTestModal = () => {
     setShowTestModal(false);
     clearResult();
+  };
+
+  const handleAddMCP = (name: string, config: MCPConfigInput) => {
+    postMessage({ type: 'addMCP', name, config });
+    setShowAddMCPModal(false);
   };
 
   // Find existing config for each server
@@ -326,6 +332,15 @@ export const App: React.FC = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
+                onClick={() => setShowAddMCPModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <PlusIcon size={14} />
+                Add
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
                 onClick={() => setShowTestingTab(true)}
                 disabled={guardedCount === 0}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -380,6 +395,13 @@ export const App: React.FC = () => {
         currentStep={currentStep}
         onViewLogs={handleViewLogs}
         onRetry={testingMCP ? () => testConnection(testingMCP) : undefined}
+      />
+
+      {/* Add MCP Modal */}
+      <AddMCPModal
+        isOpen={showAddMCPModal}
+        onClose={() => setShowAddMCPModal(false)}
+        onAdd={handleAddMCP}
       />
     </div>
   );

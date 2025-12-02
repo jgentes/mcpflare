@@ -49,6 +49,9 @@ import {
   ensureMCPGuardInConfig,
   removeMCPGuardFromConfig,
   getMCPStatus,
+  invalidateMCPCache,
+  addMCPToIDE,
+  deleteMCPFromIDE,
 } from '../../src/extension/config-loader';
 
 describe('config-loader', () => {
@@ -532,6 +535,259 @@ describe('config-loader', () => {
       }));
 
       expect(getMCPStatus('unknown-mcp')).toBe('not_found');
+    });
+  });
+
+  describe('invalidateMCPCache', () => {
+    it('should return success when no settings file exists', () => {
+      const result = invalidateMCPCache('test-mcp');
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('No settings file exists');
+    });
+
+    it('should clear token metrics cache for specific MCP', () => {
+      const settingsPath = getSettingsPath();
+      addMockFile(settingsPath, JSON.stringify({
+        enabled: true,
+        defaults: {},
+        mcpConfigs: [],
+        tokenMetricsCache: {
+          'test-mcp': { toolCount: 5, schemaChars: 1000, estimatedTokens: 286, assessedAt: '2024-01-01' },
+          'other-mcp': { toolCount: 3, schemaChars: 500, estimatedTokens: 143, assessedAt: '2024-01-01' },
+        },
+      }));
+
+      const result = invalidateMCPCache('test-mcp');
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Cache invalidated');
+      
+      // Verify the cache was cleared for test-mcp but not other-mcp
+      const savedContent = getMockFileContent(settingsPath);
+      const saved = JSON.parse(savedContent!);
+      expect(saved.tokenMetricsCache['test-mcp']).toBeUndefined();
+      expect(saved.tokenMetricsCache['other-mcp']).toBeDefined();
+    });
+
+    it('should clear assessment errors cache for specific MCP', () => {
+      const settingsPath = getSettingsPath();
+      addMockFile(settingsPath, JSON.stringify({
+        enabled: true,
+        defaults: {},
+        mcpConfigs: [],
+        assessmentErrorsCache: {
+          'test-mcp': { type: 'auth_failed', message: 'Auth failed', errorAt: '2024-01-01' },
+          'other-mcp': { type: 'connection_failed', message: 'Connection failed', errorAt: '2024-01-01' },
+        },
+      }));
+
+      const result = invalidateMCPCache('test-mcp');
+      
+      expect(result.success).toBe(true);
+      
+      // Verify the error cache was cleared for test-mcp but not other-mcp
+      const savedContent = getMockFileContent(settingsPath);
+      const saved = JSON.parse(savedContent!);
+      expect(saved.assessmentErrorsCache['test-mcp']).toBeUndefined();
+      expect(saved.assessmentErrorsCache['other-mcp']).toBeDefined();
+    });
+
+    it('should return success with message when no cache entries found', () => {
+      const settingsPath = getSettingsPath();
+      addMockFile(settingsPath, JSON.stringify({
+        enabled: true,
+        defaults: {},
+        mcpConfigs: [],
+      }));
+
+      const result = invalidateMCPCache('nonexistent-mcp');
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('No cache entries found');
+    });
+  });
+
+  describe('addMCPToIDE', () => {
+    it('should add command-based MCP to existing config', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({
+        'existing-mcp': { command: 'node', args: ['existing.js'] },
+      }));
+
+      const result = addMCPToIDE('new-mcp', {
+        command: 'python',
+        args: ['-m', 'my_server'],
+      });
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Added new-mcp');
+      
+      // Verify the MCP was added
+      const mcps = loadAllMCPServers();
+      const newMcp = mcps.find(m => m.name === 'new-mcp');
+      expect(newMcp).toBeDefined();
+      expect(newMcp?.command).toBe('python');
+      expect(newMcp?.args).toEqual(['-m', 'my_server']);
+    });
+
+    it('should add URL-based MCP with headers', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({}));
+
+      const result = addMCPToIDE('github', {
+        url: 'https://api.github.com/mcp/',
+        headers: { Authorization: 'Bearer token123' },
+      });
+      
+      expect(result.success).toBe(true);
+      
+      // Verify the MCP was added with headers
+      const mcps = loadAllMCPServers();
+      const githubMcp = mcps.find(m => m.name === 'github');
+      expect(githubMcp).toBeDefined();
+      expect(githubMcp?.url).toBe('https://api.github.com/mcp/');
+      expect(githubMcp?.headers).toEqual({ Authorization: 'Bearer token123' });
+    });
+
+    it('should fail if MCP already exists', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({
+        'existing-mcp': { command: 'node' },
+      }));
+
+      const result = addMCPToIDE('existing-mcp', { command: 'python' });
+      
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('already exists');
+    });
+
+    it('should fail if MCP exists in disabled section', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig(
+        {},
+        { _mcpguard_disabled: { 'guarded-mcp': { command: 'node' } } }
+      ));
+
+      const result = addMCPToIDE('guarded-mcp', { command: 'python' });
+      
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('already exists');
+      expect(result.message).toContain('guarded');
+    });
+
+    it('should add MCP with environment variables', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({}));
+
+      const result = addMCPToIDE('env-mcp', {
+        command: 'node',
+        args: ['server.js'],
+        env: { API_KEY: 'secret123', DEBUG: 'true' },
+      });
+      
+      expect(result.success).toBe(true);
+      
+      // Verify the MCP was added with env
+      const mcps = loadAllMCPServers();
+      const envMcp = mcps.find(m => m.name === 'env-mcp');
+      expect(envMcp).toBeDefined();
+      expect(envMcp?.env).toEqual({ API_KEY: 'secret123', DEBUG: 'true' });
+    });
+  });
+
+  describe('deleteMCPFromIDE', () => {
+    it('should return failure when no config exists', () => {
+      const result = deleteMCPFromIDE('test-mcp');
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('No IDE config file found');
+    });
+
+    it('should delete active MCP from config', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({
+        'to-delete': { command: 'node', args: ['delete.js'] },
+        'to-keep': { command: 'node', args: ['keep.js'] },
+      }));
+
+      const result = deleteMCPFromIDE('to-delete');
+      
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Deleted to-delete');
+      
+      // Verify the MCP was deleted
+      expect(getMCPStatus('to-delete')).toBe('not_found');
+      expect(getMCPStatus('to-keep')).toBe('active');
+    });
+
+    it('should delete disabled MCP from config', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig(
+        { 'active-mcp': { command: 'node' } },
+        { _mcpguard_disabled: { 'disabled-mcp': { command: 'node' } } }
+      ));
+
+      const result = deleteMCPFromIDE('disabled-mcp');
+      
+      expect(result.success).toBe(true);
+      
+      // Verify the MCP was deleted
+      expect(getMCPStatus('disabled-mcp')).toBe('not_found');
+      expect(getMCPStatus('active-mcp')).toBe('active');
+    });
+
+    it('should return failure for non-existent MCP', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig({
+        'existing-mcp': { command: 'node' },
+      }));
+
+      const result = deleteMCPFromIDE('nonexistent-mcp');
+      
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('not found');
+    });
+
+    it('should clean up empty _mcpguard_disabled section after delete', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      addMockFile(cursorPath, createSampleMCPConfig(
+        {},
+        { _mcpguard_disabled: { 'only-disabled': { command: 'node' } } }
+      ));
+
+      deleteMCPFromIDE('only-disabled');
+      
+      // Verify the _mcpguard_disabled section was cleaned up
+      const savedContent = getMockFileContent(cursorPath);
+      const saved = JSON.parse(savedContent!);
+      expect(saved._mcpguard_disabled).toBeUndefined();
+    });
+
+    it('should invalidate cache when deleting MCP', () => {
+      const cursorPath = getTestConfigPath('cursor');
+      const settingsPath = getSettingsPath();
+      
+      addMockFile(cursorPath, createSampleMCPConfig({
+        'test-mcp': { command: 'node' },
+      }));
+      addMockFile(settingsPath, JSON.stringify({
+        enabled: true,
+        defaults: {},
+        mcpConfigs: [],
+        tokenMetricsCache: {
+          'test-mcp': { toolCount: 5, schemaChars: 1000, estimatedTokens: 286, assessedAt: '2024-01-01' },
+        },
+        assessmentErrorsCache: {
+          'test-mcp': { type: 'auth_failed', message: 'Auth failed', errorAt: '2024-01-01' },
+        },
+      }));
+
+      deleteMCPFromIDE('test-mcp');
+      
+      // Verify the cache was invalidated
+      const savedSettings = getMockFileContent(settingsPath);
+      const settings = JSON.parse(savedSettings!);
+      expect(settings.tokenMetricsCache['test-mcp']).toBeUndefined();
+      expect(settings.assessmentErrorsCache['test-mcp']).toBeUndefined();
     });
   });
 });

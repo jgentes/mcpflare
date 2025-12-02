@@ -1,5 +1,8 @@
 /**
  * Tests for mcp-registry.ts
+ * 
+ * Note: isGuarded is now derived from IDE config (ConfigManager), not stored in settings.
+ * Tests mock ConfigManager to control the guarded state.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -21,6 +24,10 @@ import {
   type MCPSecurityConfig,
 } from '../../src/utils/mcp-registry.js'
 
+// Track which MCPs are "disabled" in the mock IDE config
+let mockDisabledMCPs: Set<string> = new Set()
+let mockAllConfiguredMCPs: Record<string, unknown> = {}
+
 // Mock logger
 vi.mock('../../src/utils/logger.js', () => ({
   default: {
@@ -28,6 +35,21 @@ vi.mock('../../src/utils/logger.js', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+  },
+}))
+
+// Mock ConfigManager to control isGuarded state
+vi.mock('../../src/utils/config-manager.js', () => ({
+  ConfigManager: class MockConfigManager {
+    isMCPDisabled(mcpName: string): boolean {
+      return mockDisabledMCPs.has(mcpName)
+    }
+    getDisabledMCPs(): string[] {
+      return Array.from(mockDisabledMCPs)
+    }
+    getAllConfiguredMCPs(): Record<string, unknown> {
+      return mockAllConfiguredMCPs
+    }
   },
 }))
 
@@ -74,12 +96,16 @@ describe('mcp-registry', () => {
   beforeEach(() => {
     mockFileSystem.clear()
     mockDirs.clear()
+    mockDisabledMCPs.clear()
+    mockAllConfiguredMCPs = {}
     testSettingsPath = path.join(os.homedir(), '.mcpguard', 'settings.json')
   })
 
   afterEach(() => {
     mockFileSystem.clear()
     mockDirs.clear()
+    mockDisabledMCPs.clear()
+    mockAllConfiguredMCPs = {}
   })
 
   describe('getSettingsPath', () => {
@@ -268,7 +294,7 @@ describe('mcp-registry', () => {
       expect(config).toBeUndefined()
     })
 
-    it('should return undefined when MCP config not found', () => {
+    it('should return undefined when MCP is not guarded (not in _mcpguard_disabled)', () => {
       const settings: MCPGuardSettings = {
         enabled: true,
         defaults: {
@@ -279,46 +305,15 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-
-      const config = getIsolationConfigForMCP('nonexistent-mcp')
-      expect(config).toBeUndefined()
-    })
-
-    it('should return undefined when MCP is not guarded', () => {
-      const mcpConfig: MCPSecurityConfig = {
-        id: 'test-id',
-        mcpName: 'test-mcp',
-        isGuarded: false,
-        network: { enabled: false, allowlist: [], allowLocalhost: false },
-        fileSystem: { enabled: false, readPaths: [], writePaths: [] },
-        resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
-        lastModified: new Date().toISOString(),
-      }
-      const settings: MCPGuardSettings = {
-        enabled: true,
-        defaults: {
-          network: { enabled: false, allowlist: [], allowLocalhost: false },
-          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
-          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
-        },
-        mcpConfigs: [mcpConfig],
-      }
-      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // MCP exists but not disabled (not guarded)
+      mockAllConfiguredMCPs = { 'test-mcp': {} }
+      // mockDisabledMCPs is empty, so 'test-mcp' is not guarded
 
       const config = getIsolationConfigForMCP('test-mcp')
       expect(config).toBeUndefined()
     })
 
-    it('should return config when MCP is guarded', () => {
-      const mcpConfig: MCPSecurityConfig = {
-        id: 'test-id',
-        mcpName: 'test-mcp',
-        isGuarded: true,
-        network: { enabled: true, allowlist: ['example.com'], allowLocalhost: true },
-        fileSystem: { enabled: true, readPaths: ['/tmp'], writePaths: [] },
-        resourceLimits: { maxExecutionTimeMs: 60000, maxMemoryMB: 256, maxMCPCalls: 200 },
-        lastModified: new Date().toISOString(),
-      }
+    it('should return config with defaults when MCP is guarded but has no security config', () => {
       const settings: MCPGuardSettings = {
         enabled: true,
         defaults: {
@@ -326,9 +321,45 @@ describe('mcp-registry', () => {
           fileSystem: { enabled: false, readPaths: [], writePaths: [] },
           resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         },
-        mcpConfigs: [mcpConfig],
+        mcpConfigs: [], // No security config for this MCP
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up MCP as guarded (in _mcpguard_disabled)
+      mockDisabledMCPs.add('test-mcp')
+      mockAllConfiguredMCPs = { 'test-mcp': {} }
+
+      const config = getIsolationConfigForMCP('test-mcp')
+      expect(config).toBeDefined()
+      expect(config?.mcpName).toBe('test-mcp')
+      expect(config?.isGuarded).toBe(true)
+      // Should use defaults
+      expect(config?.limits.cpuMs).toBe(30000)
+    })
+
+    it('should return config when MCP is guarded (in _mcpguard_disabled)', () => {
+      // Note: isGuarded is NOT stored - stored config doesn't have isGuarded field
+      const storedConfig = {
+        id: 'test-id',
+        mcpName: 'test-mcp',
+        // isGuarded is NOT stored
+        network: { enabled: true, allowlist: ['example.com'], allowLocalhost: true },
+        fileSystem: { enabled: true, readPaths: ['/tmp'], writePaths: [] },
+        resourceLimits: { maxExecutionTimeMs: 60000, maxMemoryMB: 256, maxMCPCalls: 200 },
+        lastModified: new Date().toISOString(),
+      }
+      const settings = {
+        enabled: true,
+        defaults: {
+          network: { enabled: false, allowlist: [], allowLocalhost: false },
+          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
+          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
+        },
+        mcpConfigs: [storedConfig],
+      }
+      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up MCP as guarded (in _mcpguard_disabled)
+      mockDisabledMCPs.add('test-mcp')
+      mockAllConfiguredMCPs = { 'test-mcp': {} }
 
       const config = getIsolationConfigForMCP('test-mcp')
       expect(config).toBeDefined()
@@ -349,31 +380,32 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Even if an MCP is disabled in IDE config, should return empty when MCP Guard is disabled
+      mockDisabledMCPs.add('test-mcp')
 
       const configs = getAllGuardedMCPs()
       expect(configs.size).toBe(0)
     })
 
-    it('should return only guarded MCPs', () => {
-      const guardedConfig: MCPSecurityConfig = {
+    it('should return only guarded MCPs (from IDE config _mcpguard_disabled)', () => {
+      // Note: isGuarded is NOT stored - it's derived from IDE config
+      const guardedConfig = {
         id: 'guarded-id',
         mcpName: 'guarded-mcp',
-        isGuarded: true,
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         lastModified: new Date().toISOString(),
       }
-      const unguardedConfig: MCPSecurityConfig = {
+      const unguardedConfig = {
         id: 'unguarded-id',
         mcpName: 'unguarded-mcp',
-        isGuarded: false,
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         lastModified: new Date().toISOString(),
       }
-      const settings: MCPGuardSettings = {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -383,17 +415,41 @@ describe('mcp-registry', () => {
         mcpConfigs: [guardedConfig, unguardedConfig],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up guarded MCP (in _mcpguard_disabled)
+      mockDisabledMCPs.add('guarded-mcp')
+      // unguarded-mcp is NOT in mockDisabledMCPs
 
       const configs = getAllGuardedMCPs()
       expect(configs.size).toBe(1)
       expect(configs.has('guarded-mcp')).toBe(true)
       expect(configs.has('unguarded-mcp')).toBe(false)
     })
+
+    it('should return guarded MCPs with default config if no security config exists', () => {
+      const settings = {
+        enabled: true,
+        defaults: {
+          network: { enabled: false, allowlist: [], allowLocalhost: false },
+          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
+          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
+        },
+        mcpConfigs: [], // No security configs
+      }
+      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up guarded MCP (in _mcpguard_disabled)
+      mockDisabledMCPs.add('guarded-mcp')
+
+      const configs = getAllGuardedMCPs()
+      expect(configs.size).toBe(1)
+      expect(configs.has('guarded-mcp')).toBe(true)
+      // Should use default config
+      expect(configs.get('guarded-mcp')?.limits.cpuMs).toBe(30000)
+    })
   })
 
   describe('isMCPGuarded', () => {
     it('should return false when MCP Guard is disabled', () => {
-      const settings: MCPGuardSettings = {
+      const settings = {
         enabled: false,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -403,12 +459,14 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Even if MCP is in _mcpguard_disabled, should return false when Guard is disabled
+      mockDisabledMCPs.add('test-mcp')
 
       expect(isMCPGuarded('test-mcp')).toBe(false)
     })
 
-    it('should return false when MCP config not found', () => {
-      const settings: MCPGuardSettings = {
+    it('should return false when MCP is not guarded (not in _mcpguard_disabled)', () => {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -418,62 +476,32 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-
-      expect(isMCPGuarded('nonexistent-mcp')).toBe(false)
-    })
-
-    it('should return false when MCP is not guarded', () => {
-      const mcpConfig: MCPSecurityConfig = {
-        id: 'test-id',
-        mcpName: 'test-mcp',
-        isGuarded: false,
-        network: { enabled: false, allowlist: [], allowLocalhost: false },
-        fileSystem: { enabled: false, readPaths: [], writePaths: [] },
-        resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
-        lastModified: new Date().toISOString(),
-      }
-      const settings: MCPGuardSettings = {
-        enabled: true,
-        defaults: {
-          network: { enabled: false, allowlist: [], allowLocalhost: false },
-          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
-          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
-        },
-        mcpConfigs: [mcpConfig],
-      }
-      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // MCP is NOT in mockDisabledMCPs
 
       expect(isMCPGuarded('test-mcp')).toBe(false)
     })
 
-    it('should return true when MCP is guarded', () => {
-      const mcpConfig: MCPSecurityConfig = {
-        id: 'test-id',
-        mcpName: 'test-mcp',
-        isGuarded: true,
-        network: { enabled: false, allowlist: [], allowLocalhost: false },
-        fileSystem: { enabled: false, readPaths: [], writePaths: [] },
-        resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
-        lastModified: new Date().toISOString(),
-      }
-      const settings: MCPGuardSettings = {
+    it('should return true when MCP is guarded (in _mcpguard_disabled)', () => {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
           fileSystem: { enabled: false, readPaths: [], writePaths: [] },
           resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         },
-        mcpConfigs: [mcpConfig],
+        mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up MCP as guarded (in _mcpguard_disabled)
+      mockDisabledMCPs.add('test-mcp')
 
       expect(isMCPGuarded('test-mcp')).toBe(true)
     })
   })
 
   describe('createDefaultConfig', () => {
-    it('should create default config with defaults from settings', () => {
-      const settings: MCPGuardSettings = {
+    it('should create default config with defaults from settings (unguarded)', () => {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: true, allowlist: ['example.com'], allowLocalhost: true },
@@ -483,11 +511,12 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // MCP is NOT in mockDisabledMCPs, so isGuarded should be false
 
       const config = createDefaultConfig('test-mcp')
 
       expect(config.mcpName).toBe('test-mcp')
-      expect(config.isGuarded).toBe(false)
+      expect(config.isGuarded).toBe(false) // Derived from IDE config
       expect(config.network.enabled).toBe(true)
       expect(config.network.allowlist).toEqual(['example.com'])
       expect(config.fileSystem.enabled).toBe(true)
@@ -495,11 +524,31 @@ describe('mcp-registry', () => {
       expect(config.id).toContain('test-mcp')
       expect(config.lastModified).toBeDefined()
     })
+
+    it('should create default config with isGuarded=true when MCP is disabled in IDE', () => {
+      const settings = {
+        enabled: true,
+        defaults: {
+          network: { enabled: false, allowlist: [], allowLocalhost: false },
+          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
+          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
+        },
+        mcpConfigs: [],
+      }
+      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+      // Set up MCP as guarded (in _mcpguard_disabled)
+      mockDisabledMCPs.add('test-mcp')
+
+      const config = createDefaultConfig('test-mcp')
+
+      expect(config.mcpName).toBe('test-mcp')
+      expect(config.isGuarded).toBe(true) // Derived from IDE config
+    })
   })
 
   describe('upsertMCPConfig', () => {
-    it('should add new config when it does not exist', () => {
-      const settings: MCPGuardSettings = {
+    it('should add new config when it does not exist (isGuarded NOT saved)', () => {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -513,7 +562,7 @@ describe('mcp-registry', () => {
       const newConfig: MCPSecurityConfig = {
         id: 'new-id',
         mcpName: 'new-mcp',
-        isGuarded: true,
+        isGuarded: true, // This value is passed but NOT saved
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
@@ -525,19 +574,21 @@ describe('mcp-registry', () => {
       const saved = JSON.parse(mockFileSystem.get(testSettingsPath)!)
       expect(saved.mcpConfigs).toHaveLength(1)
       expect(saved.mcpConfigs[0].mcpName).toBe('new-mcp')
+      // isGuarded should NOT be saved - it's derived from IDE config
+      expect(saved.mcpConfigs[0].isGuarded).toBeUndefined()
     })
 
-    it('should update existing config when it exists', () => {
-      const existingConfig: MCPSecurityConfig = {
+    it('should update existing config security settings (isGuarded NOT saved)', () => {
+      const existingConfig = {
         id: 'existing-id',
         mcpName: 'existing-mcp',
-        isGuarded: false,
+        // isGuarded is NOT stored
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         lastModified: new Date().toISOString(),
       }
-      const settings: MCPGuardSettings = {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -551,7 +602,7 @@ describe('mcp-registry', () => {
       const updatedConfig: MCPSecurityConfig = {
         id: 'updated-id',
         mcpName: 'existing-mcp',
-        isGuarded: true,
+        isGuarded: true, // This value is passed but NOT saved
         network: { enabled: true, allowlist: ['example.com'], allowLocalhost: true },
         fileSystem: { enabled: true, readPaths: ['/tmp'], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 60000, maxMemoryMB: 256, maxMCPCalls: 200 },
@@ -562,32 +613,33 @@ describe('mcp-registry', () => {
 
       const saved = JSON.parse(mockFileSystem.get(testSettingsPath)!)
       expect(saved.mcpConfigs).toHaveLength(1)
-      expect(saved.mcpConfigs[0].isGuarded).toBe(true)
+      // isGuarded should NOT be saved - it's derived from IDE config
+      expect(saved.mcpConfigs[0].isGuarded).toBeUndefined()
+      // Security settings should be saved
       expect(saved.mcpConfigs[0].network.enabled).toBe(true)
     })
   })
 
   describe('removeMCPConfig', () => {
     it('should remove config when it exists', () => {
-      const config1: MCPSecurityConfig = {
+      // Note: isGuarded is NOT stored
+      const config1 = {
         id: 'id-1',
         mcpName: 'mcp-1',
-        isGuarded: true,
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         lastModified: new Date().toISOString(),
       }
-      const config2: MCPSecurityConfig = {
+      const config2 = {
         id: 'id-2',
         mcpName: 'mcp-2',
-        isGuarded: true,
         network: { enabled: false, allowlist: [], allowLocalhost: false },
         fileSystem: { enabled: false, readPaths: [], writePaths: [] },
         resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
         lastModified: new Date().toISOString(),
       }
-      const settings: MCPGuardSettings = {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -605,8 +657,42 @@ describe('mcp-registry', () => {
       expect(saved.mcpConfigs[0].mcpName).toBe('mcp-2')
     })
 
+    it('should also clean up token metrics cache when removing config', () => {
+      const config = {
+        id: 'id-1',
+        mcpName: 'mcp-1',
+        network: { enabled: false, allowlist: [], allowLocalhost: false },
+        fileSystem: { enabled: false, readPaths: [], writePaths: [] },
+        resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
+        lastModified: new Date().toISOString(),
+      }
+      const settings = {
+        enabled: true,
+        defaults: {
+          network: { enabled: false, allowlist: [], allowLocalhost: false },
+          fileSystem: { enabled: false, readPaths: [], writePaths: [] },
+          resourceLimits: { maxExecutionTimeMs: 30000, maxMemoryMB: 128, maxMCPCalls: 100 },
+        },
+        mcpConfigs: [config],
+        tokenMetricsCache: {
+          'mcp-1': { toolCount: 5, schemaChars: 1000, estimatedTokens: 285, assessedAt: '2025-01-01' },
+          'mcp-2': { toolCount: 3, schemaChars: 500, estimatedTokens: 142, assessedAt: '2025-01-01' },
+        },
+      }
+      mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
+
+      removeMCPConfig('mcp-1')
+
+      const saved = JSON.parse(mockFileSystem.get(testSettingsPath)!)
+      expect(saved.mcpConfigs).toHaveLength(0)
+      // Token metrics for mcp-1 should be removed
+      expect(saved.tokenMetricsCache['mcp-1']).toBeUndefined()
+      // Token metrics for mcp-2 should still exist
+      expect(saved.tokenMetricsCache['mcp-2']).toBeDefined()
+    })
+
     it('should do nothing when config does not exist', () => {
-      const settings: MCPGuardSettings = {
+      const settings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },

@@ -21,9 +21,15 @@ export interface ResourceLimits {
   maxMCPCalls: number;
 }
 
+/**
+ * Security configuration for an MCP server
+ * Note: isGuarded is computed from IDE config (whether MCP is in _mcpguard_disabled)
+ * It is NOT stored in settings.json - the extension derives it at runtime
+ */
 export interface MCPSecurityConfig {
   id: string;
   mcpName: string;
+  /** Computed from IDE config - true if MCP is in _mcpguard_disabled section */
   isGuarded: boolean;
   network: NetworkConfig;
   fileSystem: FileSystemConfig;
@@ -123,6 +129,22 @@ export interface MCPGuardSettings {
   contextWindowSize?: number;
 }
 
+/**
+ * MCP configuration for adding a new MCP
+ */
+export interface MCPConfigInput {
+  /** Command to run the MCP server (for command-based MCPs) */
+  command?: string;
+  /** Arguments for the command */
+  args?: string[];
+  /** URL for URL-based MCPs */
+  url?: string;
+  /** HTTP headers for URL-based MCPs */
+  headers?: Record<string, string>;
+  /** Environment variables */
+  env?: Record<string, string>;
+}
+
 export type WebviewMessage =
   | { type: 'getSettings' }
   | { type: 'getMCPServers' }
@@ -136,7 +158,10 @@ export type WebviewMessage =
   | { type: 'retryAssessment'; mcpName: string }
   | { type: 'openLogs' }
   | { type: 'testConnection'; mcpName: string }
-  | { type: 'openExternalLink'; url: string };
+  | { type: 'openExternalLink'; url: string }
+  | { type: 'deleteMCP'; mcpName: string }
+  | { type: 'addMCP'; name: string; config: MCPConfigInput }
+  | { type: 'invalidateCache'; mcpName: string };
 
 /**
  * Token savings summary data
