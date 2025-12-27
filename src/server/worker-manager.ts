@@ -1429,13 +1429,16 @@ export class WorkerManager {
     )
     // Generate fetch wrapper code if network access is enabled
     // This wraps the global fetch to enforce domain allowlisting
+    // NOTE: Empty allowlist means "allow all domains" (unrestricted mode)
     let fetchWrapperCode = ''
+    const isUnrestrictedMode = allowedHosts.length === 0
     if (networkEnabled) {
       const hostsJson = JSON.stringify(allowedHosts)
       fetchWrapperCode = 
-'    // Network access enabled with domain allowlist\n' +
+'    // Network access enabled' + (isUnrestrictedMode ? ' (UNRESTRICTED - all domains allowed)\n' : ' with domain allowlist\n') +
 '    const __allowedHosts = ' + hostsJson + ';\n' +
 '    const __allowLocalhost = ' + String(allowLocalhost) + ';\n' +
+'    const __unrestrictedMode = ' + String(isUnrestrictedMode) + '; // Empty allowlist = allow all\n' +
 '    const __originalFetch = globalThis.fetch;\n' +
 '    globalThis.fetch = async (input, init) => {\n' +
 '      const url = typeof input === \'string\' ? new URL(input) : input instanceof URL ? input : new URL(input.url);\n' +
@@ -1447,6 +1450,11 @@ export class WorkerManager {
 '        if (!__allowLocalhost) {\n' +
 '          throw new Error(`Network access denied: localhost is not allowed. Configure allowLocalhost in MCP Guard settings.`);\n' +
 '        }\n' +
+'        return __originalFetch(input, init);\n' +
+'      }\n' +
+'      \n' +
+'      // If unrestricted mode (empty allowlist), allow all domains\n' +
+'      if (__unrestrictedMode) {\n' +
 '        return __originalFetch(input, init);\n' +
 '      }\n' +
 '      \n' +

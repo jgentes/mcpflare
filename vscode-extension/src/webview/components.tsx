@@ -1679,9 +1679,28 @@ const NetworkConfigSection: React.FC<NetworkConfigSectionProps> = ({
                   marginTop: '4px',
                 }}
               >
-                Only these hosts will be accessible. Leave empty to block all
-                external requests.
+                Only these hosts will be accessible. Supports wildcards (e.g., *.github.com).
               </div>
+              {localNetwork.allowlist.length === 0 && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    background: 'rgba(234, 179, 8, 0.15)',
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>⚠️</span>
+                  <div style={{ fontSize: '11px', color: 'var(--text-warning, #eab308)' }}>
+                    <strong>Unrestricted Mode:</strong> With an empty allowlist, this MCP can access ANY domain.
+                    Add specific domains to restrict network access.
+                  </div>
+                </div>
+              )}
             </div>
 
             <Toggle

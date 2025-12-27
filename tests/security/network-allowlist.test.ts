@@ -69,8 +69,8 @@ describe('Security: Network Allowlist Enforcement', () => {
         const sensitiveData = { secret: 'STOLEN_API_KEY_12345', user: 'victim@example.com' };
         
         try {
-          // Try to exfiltrate via a simple GET request (cat API as proxy for any external site)
-          const response = await fetch('https://placekitten.com/200/300');
+          // Try to exfiltrate via a simple GET request (using httpcats.com as test endpoint)
+          const response = await fetch('https://httpcats.com/200.jpg');
           console.log('ATTACK SUCCESS: Exfiltration worked! Status:', response.status);
           console.log('SECURITY BREACH!');
         } catch (error) {
@@ -134,7 +134,7 @@ describe('Security: Network Allowlist Enforcement', () => {
       const code = `
         try {
           // This domain is NOT in the allowlist
-          const response = await fetch('https://placekitten.com/200/300');
+          const response = await fetch('https://httpcats.com/200.jpg');
           console.log('Fetch succeeded - SECURITY BREACH!');
         } catch (error) {
           console.log('Fetch blocked by allowlist:', error.message);
@@ -147,7 +147,7 @@ describe('Security: Network Allowlist Enforcement', () => {
       expect(result.success).toBe(true)
       expect(result.output).toBeDefined()
       expect(result.output).toContain('Fetch blocked by allowlist')
-      expect(result.output).toContain('placekitten.com is not in the allowed hosts list')
+      expect(result.output).toContain('httpcats.com is not in the allowed hosts list')
       expect(result.output).toContain('SECURITY: Non-allowed domain correctly rejected')
       expect(result.output).not.toContain('SECURITY BREACH')
     }, 60000)
@@ -162,12 +162,12 @@ describe('Security: Network Allowlist Enforcement', () => {
         return
       }
 
-      // Mock the isolation config to enable network with placekitten in allowlist
+      // Mock the isolation config to enable network with httpcats.com in allowlist
       vi.spyOn(mcpRegistry, 'getIsolationConfigForMCP').mockReturnValue({
         mcpName: 'memory-test-allowed',
         isGuarded: true,
         outbound: {
-          allowedHosts: ['placekitten.com'], // Allow the cat image site
+          allowedHosts: ['httpcats.com'], // Allow the HTTP cats site
           allowLocalhost: false,
         },
         fileSystem: {
@@ -193,7 +193,7 @@ describe('Security: Network Allowlist Enforcement', () => {
       // Fetch from an allowed domain (should succeed)
       const code = `
         try {
-          const response = await fetch('https://placekitten.com/200/300');
+          const response = await fetch('https://httpcats.com/200.jpg');
           if (response.ok) {
             console.log('Fetch succeeded with status:', response.status);
             console.log('ALLOWED: Domain is in allowlist');
@@ -213,6 +213,66 @@ describe('Security: Network Allowlist Enforcement', () => {
       // The allowed domain should work
       expect(result.output).toContain('ALLOWED: Domain is in allowlist')
       expect(result.output).not.toContain('UNEXPECTED BLOCK')
+    }, 60000)
+
+    it('should allow ALL domains when allowlist is empty (unrestricted mode)', async () => {
+      // Skip test if wrangler is not available
+      const { execSync } = await import('node:child_process')
+      try {
+        execSync('npx wrangler --version', { stdio: 'ignore' })
+      } catch {
+        console.warn('Skipping test: Wrangler not available')
+        return
+      }
+
+      // Mock the isolation config with empty allowlist (allow all)
+      vi.spyOn(mcpRegistry, 'getIsolationConfigForMCP').mockReturnValue({
+        mcpName: 'memory-test-allow-all',
+        isGuarded: true,
+        outbound: {
+          allowedHosts: [], // Empty = allow all domains
+          allowLocalhost: true,
+        },
+        fileSystem: {
+          enabled: false,
+          readPaths: [],
+          writePaths: [],
+        },
+        limits: {
+          cpuMs: 30000,
+          memoryMB: 128,
+          subrequests: 100,
+        },
+      })
+
+      const config: MCPConfig = {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-memory'],
+      }
+
+      const instance = await manager.loadMCP('memory-test-allow-all', config)
+      expect(instance).toBeDefined()
+
+      // With empty allowlist, any domain should work
+      const code = `
+        try {
+          const response = await fetch('https://httpcats.com/200.jpg');
+          if (response.ok) {
+            console.log('Fetch to httpcats.com succeeded');
+            console.log('UNRESTRICTED MODE: All domains allowed');
+          }
+        } catch (error) {
+          console.log('Fetch error:', error.message);
+          console.log('UNEXPECTED: Should have been allowed');
+        }
+      `
+
+      const result = await manager.executeCode(instance.mcp_id, code, 30000)
+
+      expect(result.success).toBe(true)
+      expect(result.output).toBeDefined()
+      expect(result.output).toContain('UNRESTRICTED MODE: All domains allowed')
+      expect(result.output).not.toContain('UNEXPECTED')
     }, 60000)
 
     it('should support wildcard subdomains in allowlist', async () => {
