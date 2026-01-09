@@ -123,9 +123,11 @@ FetchProxy (parent Worker) → allowlist check → real fetch() or 403
 ### Config Management
 
 Imports MCP configs from IDE config files in priority order:
-1. Claude Code: `~/.config/claude/claude_desktop_config.json`
-2. GitHub Copilot: `~/.github-copilot/apps.json`
-3. Cursor: `~/.cursor/User/globalStorage/mcp.json`
+1. Claude Code: `~/.claude/mcp.json` or `~/.claude/mcp.jsonc`
+2. GitHub Copilot: `~/.github/copilot/mcp.json` or `~/.github/copilot/mcp.jsonc`
+3. Cursor: `~/.cursor/mcp.json` or `~/.cursor/mcp.jsonc`
+
+Platform-specific fallback paths are also supported (e.g., `%APPDATA%/Claude Code/User/globalStorage/mcp.json` on Windows).
 
 ### Wrangler Integration
 

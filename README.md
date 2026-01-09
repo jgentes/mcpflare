@@ -144,9 +144,9 @@ console.log(`Sprint Summary: ${stats.completed}/${stats.total} completed, ${stat
    **How to disable:**
    - **Option 1**: Ask your LLM: "Disable all MCPs except mcpguard in my IDE configuration"
    - **Option 2**: Manually comment out or remove other MCP entries in your IDE's MCP config file:
+     - **Claude Code**: `~/.claude/mcp.jsonc` (or `%APPDATA%\Claude Code\User\globalStorage\mcp.jsonc` on Windows)
+     - **GitHub Copilot**: `~/.github/copilot/mcp.jsonc` (or `%APPDATA%\Code\User\globalStorage\github.copilot\mcp.jsonc` on Windows)
      - **Cursor**: `~/.cursor/mcp.jsonc` (or `%APPDATA%\Cursor\User\globalStorage\mcp.jsonc` on Windows)
-     - **Claude Code**: `~/.config/claude-code/mcp.jsonc` (or `%APPDATA%\Claude Code\User\globalStorage\mcp.jsonc` on Windows)
-     - **GitHub Copilot**: `~/.github/copilot/mcp.jsonc` (or `%APPDATA%\GitHub Copilot\mcp.jsonc` on Windows)
 
 3. **Restart your IDE** for changes to take effect.
 

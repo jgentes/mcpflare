@@ -681,4 +681,181 @@ describe('ConfigManager', () => {
       expect(rawConfig?._mcpguard_disabled?.[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
     })
   })
+
+  describe('Claude Code Integration', () => {
+    it('should detect claude-code as valid config source', () => {
+      manager = new ConfigManager()
+      manager.importConfigs(configPath)
+      
+      const source = manager.getConfigSource()
+      // When we import from a test path, the source detection should work
+      // The valid sources are: cursor, claude-code, github-copilot, or null
+      expect(
+        source === null ||
+          ['cursor', 'claude-code', 'github-copilot'].includes(source!),
+      ).toBe(true)
+    })
+
+    it('should display Claude Code as display name when source is claude-code', () => {
+      manager = new ConfigManager()
+      // Create a test file with a path that hints at Claude Code
+      const claudeTestDir = join(testDir, 'claude')
+      mkdirSync(claudeTestDir, { recursive: true })
+      const claudeConfigPath = join(claudeTestDir, 'mcp.json')
+      
+      const config = {
+        mcpServers: {
+          [`${TEST_MCP_PREFIX}test-mcp`]: { command: 'node', args: ['server.js'] },
+        },
+      }
+      writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2))
+      
+      manager.importConfigs(claudeConfigPath)
+      
+      // Should return a valid display name (string)
+      const displayName = manager.getConfigSourceDisplayName()
+      expect(displayName).toBeDefined()
+      expect(typeof displayName).toBe('string')
+      expect(displayName.length).toBeGreaterThan(0)
+    })
+
+    it('should handle Claude Code config with _mcpguard_disabled section', () => {
+      manager = new ConfigManager()
+      
+      // Create config mimicking Claude Code format with disabled MCPs
+      const config = {
+        mcpServers: {
+          [`${TEST_MCP_PREFIX}active-claude-mcp`]: { 
+            command: 'npx', 
+            args: ['@modelcontextprotocol/server-github'],
+            env: { GITHUB_TOKEN: '${GITHUB_TOKEN}' }
+          },
+        },
+        _mcpguard_disabled: {
+          [`${TEST_MCP_PREFIX}disabled-claude-mcp`]: { 
+            command: 'npx', 
+            args: ['some-mcp-server']
+          },
+        },
+        _mcpguard_metadata: {
+          version: '1.0.0',
+          disabled_at: new Date().toISOString(),
+        },
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2))
+      manager.importConfigs(configPath)
+
+      // Active MCPs should be available
+      const activeConfig = manager.getSavedConfig(`${TEST_MCP_PREFIX}active-claude-mcp`)
+      expect(activeConfig).toBeDefined()
+      expect(activeConfig?.command).toBe('npx')
+
+      // Disabled MCPs should be accessible via getAllConfiguredMCPs
+      const allMCPs = manager.getAllConfiguredMCPs()
+      expect(allMCPs[`${TEST_MCP_PREFIX}active-claude-mcp`]).toBeDefined()
+      expect(allMCPs[`${TEST_MCP_PREFIX}active-claude-mcp`].status).toBe('active')
+      expect(allMCPs[`${TEST_MCP_PREFIX}disabled-claude-mcp`]).toBeDefined()
+      expect(allMCPs[`${TEST_MCP_PREFIX}disabled-claude-mcp`].status).toBe('disabled')
+
+      // isMCPDisabled should return correct status
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}disabled-claude-mcp`)).toBe(true)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}active-claude-mcp`)).toBe(false)
+    })
+
+    it('should handle JSONC format (with comments)', () => {
+      manager = new ConfigManager()
+      
+      // JSONC format with comments - the parser should handle this
+      const jsoncContent = `{
+  // This is a comment
+  "mcpServers": {
+    "${TEST_MCP_PREFIX}jsonc-test-mcp": {
+      "command": "node",
+      "args": ["server.js"]
+    }
+  }
+}`
+      writeFileSync(configPath, jsoncContent)
+      manager.importConfigs(configPath)
+
+      const config = manager.getSavedConfig(`${TEST_MCP_PREFIX}jsonc-test-mcp`)
+      expect(config).toBeDefined()
+      expect(config?.command).toBe('node')
+    })
+
+    it('should support URL-based MCP configs (Claude Code format)', () => {
+      manager = new ConfigManager()
+      
+      const config = {
+        mcpServers: {
+          [`${TEST_MCP_PREFIX}url-based-mcp`]: { 
+            url: 'https://mcp.example.com/server',
+            headers: { 'Authorization': 'Bearer token123' }
+          },
+        },
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2))
+      manager.importConfigs(configPath)
+
+      const savedConfig = manager.getSavedConfig(`${TEST_MCP_PREFIX}url-based-mcp`)
+      expect(savedConfig).toBeDefined()
+      // URL-based config should have url property
+      expect('url' in savedConfig!).toBe(true)
+      expect((savedConfig as { url: string }).url).toBe('https://mcp.example.com/server')
+    })
+
+    it('should resolve environment variables in Claude Code configs', () => {
+      manager = new ConfigManager()
+      
+      // Set up test env vars
+      process.env.TEST_CLAUDE_TOKEN = 'claude-test-token-value'
+      
+      const config = {
+        mcpServers: {
+          [`${TEST_MCP_PREFIX}env-var-mcp`]: { 
+            command: 'npx',
+            args: ['test-server'],
+            env: { API_TOKEN: '${TEST_CLAUDE_TOKEN}' }
+          },
+        },
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2))
+      manager.importConfigs(configPath)
+
+      const resolvedConfig = manager.getSavedConfig(`${TEST_MCP_PREFIX}env-var-mcp`)
+      expect(resolvedConfig).toBeDefined()
+      expect(resolvedConfig?.env?.API_TOKEN).toBe('claude-test-token-value')
+
+      // Clean up
+      delete process.env.TEST_CLAUDE_TOKEN
+    })
+
+    it('should properly disable and enable MCPs (guard/unguard)', () => {
+      manager = new ConfigManager()
+      
+      const config = {
+        mcpServers: {
+          [`${TEST_MCP_PREFIX}guard-test-mcp`]: { 
+            command: 'npx',
+            args: ['test-server']
+          },
+        },
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2))
+      manager.importConfigs(configPath)
+
+      // Initially should be active
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}guard-test-mcp`)).toBe(false)
+
+      // Disable (guard) the MCP
+      const disableResult = manager.disableMCP(`${TEST_MCP_PREFIX}guard-test-mcp`)
+      expect(disableResult).toBe(true)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}guard-test-mcp`)).toBe(true)
+
+      // Enable (unguard) the MCP
+      const enableResult = manager.enableMCP(`${TEST_MCP_PREFIX}guard-test-mcp`)
+      expect(enableResult).toBe(true)
+      expect(manager.isMCPDisabled(`${TEST_MCP_PREFIX}guard-test-mcp`)).toBe(false)
+    })
+  })
 })

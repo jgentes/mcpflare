@@ -8,23 +8,21 @@ import * as os from 'os';
 import * as path from 'path';
 import { addMockFile, getMockFileContent, resetMockFs } from '../setup';
 
-// Helper to get test config paths
+// Helper to get test config paths (uses the same paths as config-loader.ts)
 function getTestConfigPath(ide: 'claude' | 'copilot' | 'cursor'): string {
   const homeDir = os.homedir();
   
   switch (ide) {
     case 'claude':
-      if (process.platform === 'win32') {
-        return path.join(homeDir, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json');
-      } else if (process.platform === 'darwin') {
-        return path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
-      }
-      return path.join(homeDir, '.config', 'claude', 'claude_desktop_config.json');
+      // Claude Code uses ~/.claude/mcp.json as primary path (cross-platform)
+      return path.join(homeDir, '.claude', 'mcp.json');
     
     case 'copilot':
-      return path.join(homeDir, '.github-copilot', 'apps.json');
+      // GitHub Copilot uses ~/.github/copilot/mcp.json as primary path
+      return path.join(homeDir, '.github', 'copilot', 'mcp.json');
     
     case 'cursor':
+      // Cursor uses ~/.cursor/mcp.json as primary path
       return path.join(homeDir, '.cursor', 'mcp.json');
   }
 }
@@ -814,6 +812,172 @@ describe('config-loader', () => {
       const settings = JSON.parse(savedSettings!);
       expect(settings.tokenMetricsCache['test-mcp']).toBeUndefined();
       expect(settings.assessmentErrorsCache['test-mcp']).toBeUndefined();
+    });
+  });
+
+  describe('Claude Code Integration', () => {
+    it('should use correct Claude Code config path (~/.claude/mcp.json)', () => {
+      // Verify the test helper returns the correct path
+      const claudePath = getTestConfigPath('claude');
+      expect(claudePath).toContain('.claude');
+      expect(claudePath).toContain('mcp.json');
+      // Should NOT use old Claude Desktop path
+      expect(claudePath).not.toContain('claude_desktop_config');
+      expect(claudePath).not.toContain('AppData');
+      expect(claudePath).not.toContain('Application Support');
+    });
+
+    it('should load MCPs from Claude Code config with _mcpguard_disabled section', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig(
+        {
+          'active-claude-mcp': { command: 'node', args: ['active.js'] },
+        },
+        {
+          _mcpguard_disabled: {
+            'disabled-claude-mcp': { command: 'node', args: ['disabled.js'] },
+          },
+        }
+      ));
+
+      const mcps = loadAllMCPServers();
+      
+      // Should load both active and disabled MCPs
+      expect(mcps).toHaveLength(2);
+      
+      const activeMcp = mcps.find(m => m.name === 'active-claude-mcp');
+      const disabledMcp = mcps.find(m => m.name === 'disabled-claude-mcp');
+      
+      expect(activeMcp).toBeDefined();
+      expect(activeMcp?.source).toBe('claude');
+      expect(activeMcp?.enabled).toBe(true);
+      
+      expect(disabledMcp).toBeDefined();
+      expect(disabledMcp?.source).toBe('claude');
+      expect(disabledMcp?.enabled).toBe(false);
+    });
+
+    it('should load URL-based MCPs from Claude Code config', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({
+        'url-mcp': {
+          url: 'https://mcp.example.com/api',
+          headers: { 'Authorization': 'Bearer token123' },
+        },
+      }));
+
+      const mcps = loadAllMCPServers();
+      
+      expect(mcps).toHaveLength(1);
+      expect(mcps[0]).toMatchObject({
+        name: 'url-mcp',
+        url: 'https://mcp.example.com/api',
+        headers: { 'Authorization': 'Bearer token123' },
+        source: 'claude',
+        enabled: true,
+      });
+    });
+
+    it('should load MCPs with environment variables from Claude Code config', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({
+        'env-mcp': {
+          command: 'npx',
+          args: ['@modelcontextprotocol/server-github'],
+          env: {
+            GITHUB_TOKEN: '${GITHUB_TOKEN}',
+            DEBUG: 'true',
+          },
+        },
+      }));
+
+      const mcps = loadAllMCPServers();
+      
+      expect(mcps).toHaveLength(1);
+      expect(mcps[0].env).toEqual({
+        GITHUB_TOKEN: '${GITHUB_TOKEN}',
+        DEBUG: 'true',
+      });
+    });
+
+    it('should detect Claude Code config in getDetectedConfigs', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({}));
+
+      const detected = getDetectedConfigs();
+      
+      const claudeConfig = detected.find(d => d.ide === 'claude');
+      expect(claudeConfig).toBeDefined();
+      expect(claudeConfig?.path).toBe(claudePath);
+    });
+
+    it('should prioritize Claude Code over Copilot when deduplicating MCPs', () => {
+      const claudePath = getTestConfigPath('claude');
+      const copilotPath = getTestConfigPath('copilot');
+      
+      addMockFile(claudePath, createSampleMCPConfig({
+        'shared-mcp': { command: 'claude-command' },
+      }));
+      addMockFile(copilotPath, createSampleMCPConfig({
+        'shared-mcp': { command: 'copilot-command' },
+      }));
+
+      const mcps = loadAllMCPServers();
+      
+      // Claude should take priority
+      expect(mcps).toHaveLength(1);
+      expect(mcps[0].command).toBe('claude-command');
+      expect(mcps[0].source).toBe('claude');
+    });
+
+    it('should disable and enable MCPs in Claude Code config', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({
+        'test-mcp': { command: 'node', args: ['test.js'] },
+      }));
+
+      // Disable the MCP
+      const disableResult = disableMCPInIDE('test-mcp');
+      expect(disableResult.success).toBe(true);
+      expect(isMCPDisabled('test-mcp')).toBe(true);
+
+      // Enable the MCP
+      const enableResult = enableMCPInIDE('test-mcp');
+      expect(enableResult.success).toBe(true);
+      expect(isMCPDisabled('test-mcp')).toBe(false);
+    });
+
+    it('should add new MCP to Claude Code config', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({}));
+
+      const result = addMCPToIDE('new-claude-mcp', {
+        command: 'npx',
+        args: ['@anthropic/mcp-server'],
+        env: { API_KEY: 'secret' },
+      });
+      
+      expect(result.success).toBe(true);
+      
+      // Verify the MCP was added
+      const mcps = loadAllMCPServers();
+      const newMcp = mcps.find(m => m.name === 'new-claude-mcp');
+      expect(newMcp).toBeDefined();
+      expect(newMcp?.command).toBe('npx');
+    });
+
+    it('should delete MCP from Claude Code config', () => {
+      const claudePath = getTestConfigPath('claude');
+      addMockFile(claudePath, createSampleMCPConfig({
+        'to-delete': { command: 'node' },
+        'to-keep': { command: 'python' },
+      }));
+
+      const result = deleteMCPFromIDE('to-delete');
+      
+      expect(result.success).toBe(true);
+      expect(getMCPStatus('to-delete')).toBe('not_found');
+      expect(getMCPStatus('to-keep')).toBe('active');
     });
   });
 });

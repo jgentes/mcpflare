@@ -3,6 +3,8 @@
  * 
  * Loads MCP configurations from various IDE config files
  * and provides functions to disable/enable MCPs for MCP Guard integration.
+ * 
+ * Supports Claude Code, GitHub Copilot, and Cursor IDEs.
  */
 
 import * as fs from 'fs';
@@ -11,7 +13,7 @@ import * as os from 'os';
 import type { MCPServerInfo } from './types';
 
 /**
- * IDE configuration file format (matches Cursor/Claude Desktop format)
+ * IDE configuration file format (matches Cursor/Claude Code format)
  */
 interface MCPServersConfig {
   mcpServers: Record<string, unknown>;
@@ -25,25 +27,50 @@ interface MCPServersConfig {
 
 /**
  * IDE configuration file locations
+ * Claude Code is checked first as it has highest priority
  */
 const IDE_CONFIG_PATHS = {
   claude: [
-    // Claude Code on Windows
-    path.join(os.homedir(), 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json'),
-    // Claude Code on macOS
-    path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
-    // Claude Code on Linux
-    path.join(os.homedir(), '.config', 'claude', 'claude_desktop_config.json'),
+    // Claude Code primary paths (cross-platform)
+    path.join(os.homedir(), '.claude', 'mcp.json'),
+    path.join(os.homedir(), '.claude', 'mcp.jsonc'),
+    // Claude Code on Windows (AppData)
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Claude Code', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Claude Code', 'User', 'globalStorage', 'mcp.jsonc'),
+    // Claude Code on macOS (Application Support)
+    path.join(os.homedir(), 'Library', 'Application Support', 'Claude Code', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), 'Library', 'Application Support', 'Claude Code', 'User', 'globalStorage', 'mcp.jsonc'),
+    // Claude Code on Linux (.config)
+    path.join(os.homedir(), '.config', 'Claude Code', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), '.config', 'Claude Code', 'User', 'globalStorage', 'mcp.jsonc'),
   ],
   copilot: [
-    // GitHub Copilot MCP config
-    path.join(os.homedir(), '.github-copilot', 'apps.json'),
+    // GitHub Copilot MCP config (primary paths)
+    path.join(os.homedir(), '.github', 'copilot', 'mcp.json'),
+    path.join(os.homedir(), '.github', 'copilot', 'mcp.jsonc'),
+    // GitHub Copilot on Windows (VS Code extension storage)
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.json'),
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.jsonc'),
+    // GitHub Copilot on macOS (VS Code extension storage)
+    path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.json'),
+    path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.jsonc'),
+    // GitHub Copilot on Linux (VS Code extension storage)
+    path.join(os.homedir(), '.config', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.json'),
+    path.join(os.homedir(), '.config', 'Code', 'User', 'globalStorage', 'github.copilot', 'mcp.jsonc'),
   ],
   cursor: [
-    // Cursor MCP config (root level)
+    // Cursor MCP config (primary paths)
     path.join(os.homedir(), '.cursor', 'mcp.json'),
-    // Cursor MCP config (legacy path)
-    path.join(os.homedir(), '.cursor', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), '.cursor', 'mcp.jsonc'),
+    // Cursor on Windows (AppData)
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'mcp.jsonc'),
+    // Cursor on macOS (Application Support)
+    path.join(os.homedir(), 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'mcp.jsonc'),
+    // Cursor on Linux (.config)
+    path.join(os.homedir(), '.config', 'Cursor', 'User', 'globalStorage', 'mcp.json'),
+    path.join(os.homedir(), '.config', 'Cursor', 'User', 'globalStorage', 'mcp.jsonc'),
   ],
 };
 
@@ -72,7 +99,9 @@ function safeParseJSON(filePath: string): unknown | null {
 }
 
 /**
- * Load MCPs from Claude Desktop config
+ * Load MCPs from Claude Code config (including disabled MCPs from _mcpguard_disabled)
+ * Claude Code uses ~/.claude/mcp.json or ~/.claude/mcp.jsonc as primary config location
+ * Also supports legacy `disabled: true` property for backwards compatibility
  */
 function loadClaudeConfig(): MCPServerInfo[] {
   const mcps: MCPServerInfo[] = [];
@@ -85,26 +114,58 @@ function loadClaudeConfig(): MCPServerInfo[] {
         command?: string;
         args?: string[];
         url?: string;
+        headers?: Record<string, string>;
         env?: Record<string, string>;
         disabled?: boolean;
       }>;
+      _mcpguard_disabled?: Record<string, {
+        command?: string;
+        args?: string[];
+        url?: string;
+        headers?: Record<string, string>;
+        env?: Record<string, string>;
+      }>;
     } | null;
     
-    if (!config?.mcpServers) continue;
+    if (!config) continue;
     
-    for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-      // Skip mcpguard itself
-      if (name === 'mcpguard') continue;
-      
-      mcps.push({
-        name,
-        command: serverConfig.command,
-        args: serverConfig.args,
-        url: serverConfig.url,
-        env: serverConfig.env,
-        source: 'claude',
-        enabled: !serverConfig.disabled,
-      });
+    // Load active MCPs (also check legacy disabled property)
+    if (config.mcpServers) {
+      for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+        // Skip mcpguard itself
+        if (name === 'mcpguard') continue;
+        
+        mcps.push({
+          name,
+          command: serverConfig.command,
+          args: serverConfig.args,
+          url: serverConfig.url,
+          headers: serverConfig.headers,
+          env: serverConfig.env,
+          source: 'claude',
+          // Support both _mcpguard_disabled section and legacy disabled property
+          enabled: !serverConfig.disabled,
+        });
+      }
+    }
+    
+    // Load disabled MCPs (guarded by MCPGuard - new pattern)
+    if (config._mcpguard_disabled) {
+      for (const [name, serverConfig] of Object.entries(config._mcpguard_disabled)) {
+        // Skip mcpguard itself
+        if (name === 'mcpguard') continue;
+        
+        mcps.push({
+          name,
+          command: serverConfig.command,
+          args: serverConfig.args,
+          url: serverConfig.url,
+          headers: serverConfig.headers,
+          env: serverConfig.env,
+          source: 'claude',
+          enabled: false, // Disabled MCPs - guarded by MCPGuard
+        });
+      }
     }
     
     // Only use first found config
@@ -115,7 +176,9 @@ function loadClaudeConfig(): MCPServerInfo[] {
 }
 
 /**
- * Load MCPs from GitHub Copilot config
+ * Load MCPs from GitHub Copilot config (including disabled MCPs from _mcpguard_disabled)
+ * GitHub Copilot uses ~/.github/copilot/mcp.json as primary config location
+ * Also supports legacy `disabled: true` property for backwards compatibility
  */
 function loadCopilotConfig(): MCPServerInfo[] {
   const mcps: MCPServerInfo[] = [];
@@ -128,26 +191,58 @@ function loadCopilotConfig(): MCPServerInfo[] {
         command?: string;
         args?: string[];
         url?: string;
+        headers?: Record<string, string>;
         env?: Record<string, string>;
         disabled?: boolean;
       }>;
+      _mcpguard_disabled?: Record<string, {
+        command?: string;
+        args?: string[];
+        url?: string;
+        headers?: Record<string, string>;
+        env?: Record<string, string>;
+      }>;
     } | null;
     
-    if (!config?.mcpServers) continue;
+    if (!config) continue;
     
-    for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-      // Skip mcpguard itself
-      if (name === 'mcpguard') continue;
-      
-      mcps.push({
-        name,
-        command: serverConfig.command,
-        args: serverConfig.args,
-        url: serverConfig.url,
-        env: serverConfig.env,
-        source: 'copilot',
-        enabled: !serverConfig.disabled,
-      });
+    // Load active MCPs (also check legacy disabled property)
+    if (config.mcpServers) {
+      for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+        // Skip mcpguard itself
+        if (name === 'mcpguard') continue;
+        
+        mcps.push({
+          name,
+          command: serverConfig.command,
+          args: serverConfig.args,
+          url: serverConfig.url,
+          headers: serverConfig.headers,
+          env: serverConfig.env,
+          source: 'copilot',
+          // Support both _mcpguard_disabled section and legacy disabled property
+          enabled: !serverConfig.disabled,
+        });
+      }
+    }
+    
+    // Load disabled MCPs (guarded by MCPGuard - new pattern)
+    if (config._mcpguard_disabled) {
+      for (const [name, serverConfig] of Object.entries(config._mcpguard_disabled)) {
+        // Skip mcpguard itself
+        if (name === 'mcpguard') continue;
+        
+        mcps.push({
+          name,
+          command: serverConfig.command,
+          args: serverConfig.args,
+          url: serverConfig.url,
+          headers: serverConfig.headers,
+          env: serverConfig.env,
+          source: 'copilot',
+          enabled: false, // Disabled MCPs - guarded by MCPGuard
+        });
+      }
     }
     
     break;
@@ -158,6 +253,7 @@ function loadCopilotConfig(): MCPServerInfo[] {
 
 /**
  * Load MCPs from Cursor config (including disabled MCPs from _mcpguard_disabled)
+ * Cursor uses ~/.cursor/mcp.json or ~/.cursor/mcp.jsonc as primary config location
  */
 function loadCursorConfig(): MCPServerInfo[] {
   const mcps: MCPServerInfo[] = [];
