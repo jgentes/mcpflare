@@ -91,6 +91,46 @@ The VS Code extension uses Cloudflare Workers isolates for execution:
 - **Process Isolation**: Each execution runs in a fresh isolate
 - **Configurable Allowlists**: Granular control over what each MCP can access
 
+## OAuth MCPs
+
+<Callout type="warning" title="OAuth MCPs Cannot Be Guarded">
+  MCPs that require OAuth authentication (like Atlassian, Google, or Slack MCPs) **cannot be guarded** by MCP Guard. These MCPs must be used directly through your IDE (Cursor or Claude Code).
+</Callout>
+
+### Why OAuth MCPs Are Not Supported
+
+OAuth authentication requires a complex flow:
+1. The IDE (Cursor/Claude) registers as an OAuth client with the provider
+2. Users authenticate through a browser redirect
+3. The IDE receives and stores access/refresh tokens
+4. Tokens are automatically included in MCP requests
+
+When MCP Guard "guards" an MCP, it intercepts and proxies all communication. This breaks the OAuth token association because:
+- The OAuth tokens are bound to the IDE's session
+- MCP Guard cannot access or forward these tokens
+- Guarding would require re-authenticating through MCP Guard (not supported)
+
+### How to Use OAuth MCPs
+
+1. **Leave unguarded**: Keep the MCP Guard toggle OFF for OAuth MCPs
+2. **Connect via IDE**: Use your IDE's native MCP settings to connect and authenticate
+3. **Use normally**: The MCP will work directly through your IDE without isolation
+
+MCP Guard automatically detects OAuth requirements and displays a "Cannot Guard" badge. You can still view and modify other configuration options for these MCPs.
+
+### Identifying OAuth MCPs
+
+OAuth MCPs are detected by:
+- `WWW-Authenticate: Bearer` header in 401 responses
+- `.well-known/oauth-protected-resource` endpoint (RFC 9728)
+
+Common OAuth MCPs include:
+- Atlassian (Jira, Confluence)
+- Google Workspace
+- Slack
+- Microsoft/Azure
+- GitHub (when using OAuth instead of PAT)
+
 ## Troubleshooting
 
 ### MCPs Not Appearing

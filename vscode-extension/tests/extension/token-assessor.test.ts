@@ -362,5 +362,206 @@ describe('token-assessor', () => {
       expect(summary.totalTokensWithoutGuard).toBe(350)
     })
   })
+
+  describe('OAuth detection', () => {
+    beforeEach(() => {
+      vi.resetAllMocks()
+    })
+
+    it('should detect OAuth requirement from WWW-Authenticate Bearer header', async () => {
+      const server: MCPServerInfo = {
+        name: 'oauth-mcp',
+        url: 'https://api.example.com/mcp',
+      }
+
+      // Mock fetch to return 401 with WWW-Authenticate: Bearer header
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: new Map([
+          ['www-authenticate', 'Bearer realm="api"'],
+        ]),
+        text: () => Promise.resolve('{"error": "unauthorized"}'),
+      })
+
+      const result = await assessMCPTokensWithError(server)
+
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('oauth_required')
+      expect(result.error?.oauthMetadata).toBeDefined()
+      expect(result.error?.oauthMetadata?.detectedVia).toBe('www-authenticate')
+    })
+
+    it('should detect OAuth requirement from well-known endpoint', async () => {
+      const server: MCPServerInfo = {
+        name: 'oauth-mcp',
+        url: 'https://api.example.com/mcp',
+      }
+
+      // First call (initialize) returns 401 without WWW-Authenticate
+      // Second call (well-known) returns OAuth metadata
+      let callCount = 0
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        callCount++
+        if (url.includes('.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({
+              resource: 'https://api.example.com',
+              authorization_servers: ['https://auth.example.com'],
+              scopes_supported: ['read', 'write'],
+            }),
+          })
+        }
+        // Initialize request - return 401
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          headers: new Map([['content-type', 'application/json']]),
+          text: () => Promise.resolve('{"error": "unauthorized"}'),
+        })
+      })
+
+      const result = await assessMCPTokensWithError(server)
+
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('oauth_required')
+      expect(result.error?.oauthMetadata).toBeDefined()
+      expect(result.error?.oauthMetadata?.authorization_servers).toContain('https://auth.example.com')
+    })
+
+    it('should return auth_failed when no OAuth is detected for 401', async () => {
+      const server: MCPServerInfo = {
+        name: 'api-key-mcp',
+        url: 'https://api.example.com/mcp',
+      }
+
+      // Mock fetch to return 401 without OAuth indicators
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+          })
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          headers: new Map([['content-type', 'application/json']]),
+          text: () => Promise.resolve('{"error": "invalid api key"}'),
+        })
+      })
+
+      const result = await assessMCPTokensWithError(server)
+
+      expect(result.error).toBeDefined()
+      expect(result.error?.type).toBe('auth_failed')
+      expect(result.error?.statusCode).toBe(401)
+    })
+
+    it('should successfully assess MCP that does not require OAuth', async () => {
+      const server: MCPServerInfo = {
+        name: 'public-mcp',
+        url: 'https://api.example.com/mcp',
+      }
+
+      // Mock successful MCP connection
+      global.fetch = vi.fn().mockImplementation((url: string, options?: { body?: string }) => {
+        const body = options?.body ? JSON.parse(options.body) : {}
+        
+        if (body.method === 'initialize') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            headers: new Map([
+              ['content-type', 'application/json'],
+              ['mcp-session-id', 'test-session-123'],
+            ]),
+            text: () => Promise.resolve(JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              result: {
+                protocolVersion: '2024-11-05',
+                capabilities: {},
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            })),
+          })
+        }
+        
+        if (body.method === 'tools/list') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            headers: new Map([['content-type', 'application/json']]),
+            text: () => Promise.resolve(JSON.stringify({
+              jsonrpc: '2.0',
+              id: 2,
+              result: {
+                tools: [
+                  { name: 'test_tool', description: 'A test tool', inputSchema: { type: 'object' } },
+                ],
+              },
+            })),
+          })
+        }
+        
+        return Promise.reject(new Error('Unexpected request'))
+      })
+
+      const result = await assessMCPTokensWithError(server)
+
+      expect(result.metrics).toBeDefined()
+      expect(result.error).toBeUndefined()
+      expect(result.metrics?.toolCount).toBe(1)
+    })
+
+    it('should handle OAuth MCPs that work when authenticated by host IDE', async () => {
+      // This test documents the expected behavior: OAuth MCPs cannot be guarded
+      // but they CAN be used natively with Cursor/Claude which manages OAuth tokens
+      const server: MCPServerInfo = {
+        name: 'atlassian-mcp',
+        url: 'https://mcp.atlassian.com/v1/sse',
+      }
+
+      // Mock 401 with Bearer auth requirement (typical OAuth MCP)
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({
+              resource: 'https://mcp.atlassian.com',
+              authorization_servers: ['https://auth.atlassian.com/oauth/authorize'],
+            }),
+          })
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          headers: new Map([['www-authenticate', 'Bearer']]),
+          text: () => Promise.resolve('{"error": "authentication required"}'),
+        })
+      })
+
+      const result = await assessMCPTokensWithError(server)
+
+      // Should be detected as OAuth required
+      expect(result.error?.type).toBe('oauth_required')
+      
+      // The message should indicate MCPGuard cannot support it
+      expect(result.error?.message).toContain('OAuth')
+      expect(result.error?.message).toContain('cannot support')
+      
+      // OAuth metadata should be captured for display
+      expect(result.error?.oauthMetadata).toBeDefined()
+    })
+  })
 })
 
