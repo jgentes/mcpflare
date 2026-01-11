@@ -28,7 +28,7 @@ import {
  * This is the same method used by MCPGuard server at runtime
  * Returns the number of tools or -1 if validation fails
  */
-async function validateWithSDKTransport(
+export async function validateWithSDKTransport(
   url: string,
   headers?: Record<string, string>,
 ): Promise<{ toolCount: number; error?: string }> {

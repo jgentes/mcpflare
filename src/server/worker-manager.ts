@@ -447,7 +447,11 @@ export class WorkerManager {
 
     // For URL-based MCPs with 0 tools, also check persistent cache
     // as another process might have successfully cached tools
-    if (hasCachedSchema && cached.tools.length === 0 && !isCommandBasedConfig(config)) {
+    if (
+      hasCachedSchema &&
+      cached.tools.length === 0 &&
+      !isCommandBasedConfig(config)
+    ) {
       const persistentCached = getCachedSchema(mcpName, configHash)
       if (persistentCached && persistentCached.toolCount > 0) {
         // Update in-memory cache with persistent cache
@@ -1755,7 +1759,7 @@ export class WorkerManager {
       "          // Skip special properties like 'then' (for await) and Symbol properties\n" +
       "          if (prop !== 'then' && typeof prop !== 'symbol') {\n" +
       "            const availableTools = Object.keys(target).join(', ');\n" +
-      '            throw new Error(`Tool "${String(prop)}" not found. Available tools: ${availableTools || \'none\'}`);\n' +
+      '            throw new Error("Tool \\"" + String(prop) + "\\" not found. Available tools: " + (availableTools || "none"));\n' +
       '          }\n' +
       '          return original;\n' +
       '        },\n' +
