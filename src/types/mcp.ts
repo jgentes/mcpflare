@@ -105,9 +105,7 @@ export type MCPConfig = z.infer<typeof MCPConfigSchema>
 /**
  * Type guard to check if MCPConfig is command-based (not URL-based)
  */
-export function isCommandBasedConfig(
-  config: MCPConfig,
-): config is {
+export function isCommandBasedConfig(config: MCPConfig): config is {
   command: string
   args?: string[]
   env?: Record<string, string>

@@ -66,6 +66,12 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
    * - The isolation layer properly routes MCP tool calls while preventing direct access
    */
   it('should successfully retrieve repository information via GitHub MCP through MCPGuard while maintaining isolation', async () => {
+    // Skip test in CI environments - this eval test requires local IDE config setup
+    if (process.env.CI || process.env.GITHUB_ACTIONS) {
+      console.warn('Skipping eval test in CI environment - requires local IDE config')
+      return
+    }
+
     // Skip test if wrangler is not available
     const { execSync } = await import('node:child_process')
     try {

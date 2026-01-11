@@ -115,10 +115,17 @@ export class FetchProxy extends WorkerEntrypoint {
    */
   async fetch(request: Request): Promise<Response> {
     // Read allowlist configuration from headers (set by dynamic worker's fetch wrapper)
-    const allowedHostsHeader = request.headers.get('X-MCPGuard-Allowed-Hosts') || ''
-    const allowLocalhostHeader = request.headers.get('X-MCPGuard-Allow-Localhost') || 'false'
-    
-    const allowedHosts: string[] = allowedHostsHeader ? allowedHostsHeader.split(',').map(h => h.trim()).filter(h => h) : []
+    const allowedHostsHeader =
+      request.headers.get('X-MCPGuard-Allowed-Hosts') || ''
+    const allowLocalhostHeader =
+      request.headers.get('X-MCPGuard-Allow-Localhost') || 'false'
+
+    const allowedHosts: string[] = allowedHostsHeader
+      ? allowedHostsHeader
+          .split(',')
+          .map((h) => h.trim())
+          .filter((h) => h)
+      : []
     const allowLocalhost: boolean = allowLocalhostHeader === 'true'
 
     // Parse the target URL from the request
@@ -127,9 +134,7 @@ export class FetchProxy extends WorkerEntrypoint {
 
     // Check if it's a loopback address
     const isLoopback =
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1'
+      hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
 
     // Check localhost access
     if (isLoopback && !allowLocalhost) {
@@ -165,7 +170,7 @@ export class FetchProxy extends WorkerEntrypoint {
     const forwardHeaders = new Headers(request.headers)
     forwardHeaders.delete('X-MCPGuard-Allowed-Hosts')
     forwardHeaders.delete('X-MCPGuard-Allow-Localhost')
-    
+
     return fetch(request.url, {
       method: request.method,
       headers: forwardHeaders,
@@ -186,7 +191,7 @@ export class FetchProxy extends WorkerEntrypoint {
       // Check for wildcard subdomain (*.example.com)
       if (entry.startsWith('*.') && entry.length > 2) {
         const suffix = entry.slice(2)
-        if (hostname === suffix || hostname.endsWith('.' + suffix)) {
+        if (hostname === suffix || hostname.endsWith(`.${suffix}`)) {
           return true
         }
       } else if (hostname === entry) {
@@ -259,11 +264,14 @@ export default {
         // fetch() calls automatically go through FetchProxy for allowlist enforcement.
         // Note: Allowlist is passed via headers from the dynamic worker, not props.
         const needsFetchProxy = workerCode.env?.NETWORK_ENABLED === 'true'
-        
+
         // Create FetchProxy if network is enabled (no props needed - allowlist comes via headers)
-        const fetchProxy = needsFetchProxy && 'FetchProxy' in ctx.exports && ctx.exports.FetchProxy
-          ? ctx.exports.FetchProxy({})
-          : undefined
+        const fetchProxy =
+          needsFetchProxy &&
+          'FetchProxy' in ctx.exports &&
+          ctx.exports.FetchProxy
+            ? ctx.exports.FetchProxy({})
+            : undefined
 
         // Replace env with Service Bindings instead of passing strings
         // The Service Bindings allow dynamic workers to access MCP tools
@@ -271,12 +279,12 @@ export default {
           ...workerCode.env,
           MCP: mcpBinding,
         }
-        
+
         // Set globalOutbound to FetchProxy when network is enabled
         // This makes the dynamic worker's fetch() go through FetchProxy automatically
         // instead of being blocked (when null) or unrestricted (when undefined)
         const globalOutbound = fetchProxy || null
-        
+
         return {
           ...workerCode,
           env,

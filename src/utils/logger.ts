@@ -3,7 +3,8 @@ import pinoPrettyModule from 'pino-pretty'
 
 // pino-pretty exports a function but TypeScript with Node16 module resolution
 // may not recognize the call signature correctly
-const pinoPretty = pinoPrettyModule as unknown as typeof pinoPrettyModule.default
+const pinoPretty =
+  pinoPrettyModule as unknown as typeof pinoPrettyModule.default
 
 // Determine log level - CLI mode is quieter by default
 // Check for CLI mode: script name includes 'cli', or CLI_MODE env var is set

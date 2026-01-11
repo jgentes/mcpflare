@@ -6,25 +6,24 @@ import {
 } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { join, resolve } from 'node:path'
 import {
   createServer,
   type Server as HttpServer,
   type IncomingMessage,
   type ServerResponse,
 } from 'node:http'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import type {
   ExecutionResult,
   JSONSchemaProperty,
   MCPConfig,
   MCPInstance,
-  MCPTool,
   MCPPrompt,
+  MCPTool,
 } from '../types/mcp.js'
 import { isCommandBasedConfig } from '../types/mcp.js'
 import type { WorkerCode } from '../types/worker.js'
@@ -34,14 +33,14 @@ import {
   WorkerError,
 } from '../utils/errors.js'
 import logger from '../utils/logger.js'
-import { ProgressIndicator } from '../utils/progress-indicator.js'
-import { formatWranglerError } from '../utils/wrangler-formatter.js'
 import {
-  saveCachedSchema,
   getCachedSchema,
   getIsolationConfigForMCP,
+  saveCachedSchema,
   type WorkerIsolationConfig,
 } from '../utils/mcp-registry.js'
+import { ProgressIndicator } from '../utils/progress-indicator.js'
+import { formatWranglerError } from '../utils/wrangler-formatter.js'
 import { SchemaConverter } from './schema-converter.js'
 
 /**
@@ -108,18 +107,28 @@ export class WorkerManager {
     // This works even when the MCP server is started from a different directory
     const currentFile = fileURLToPath(import.meta.url)
     let currentDir = dirname(currentFile)
-    
+
     // Walk up from src/server/worker-manager.ts to find project root
     // We need to go up 2 levels: src/server -> src -> project root
     const maxDepth = 10 // Safety limit
     let depth = 0
-    
+
     while (depth < maxDepth) {
-      if (existsSync(join(currentDir, 'wrangler.toml')) || existsSync(join(currentDir, 'package.json'))) {
-        logger.debug({ projectRoot: currentDir, cwd: process.cwd(), sourceFile: currentFile }, 'Found project root')
+      if (
+        existsSync(join(currentDir, 'wrangler.toml')) ||
+        existsSync(join(currentDir, 'package.json'))
+      ) {
+        logger.debug(
+          {
+            projectRoot: currentDir,
+            cwd: process.cwd(),
+            sourceFile: currentFile,
+          },
+          'Found project root',
+        )
         return currentDir
       }
-      
+
       const parentDir = resolve(currentDir, '..')
       if (parentDir === currentDir) {
         break // Reached filesystem root
@@ -127,10 +136,14 @@ export class WorkerManager {
       currentDir = parentDir
       depth++
     }
-    
+
     // Fallback: try process.cwd() as last resort
     logger.warn(
-      { cwd: process.cwd(), sourceFile: currentFile, searchedFrom: dirname(currentFile) },
+      {
+        cwd: process.cwd(),
+        sourceFile: currentFile,
+        searchedFrom: dirname(currentFile),
+      },
       'Could not find project root (wrangler.toml or package.json), using cwd as fallback',
     )
     return process.cwd()
@@ -202,10 +215,12 @@ export class WorkerManager {
           // The MCP SDK returns a result with a content array, where each item has type and text/data
           // We need to extract and parse the actual data
           let toolResult: unknown = result
-          
+
           // If result has content array, extract the first text content
           if (result && typeof result === 'object' && 'content' in result) {
-            const content = (result as { content?: Array<{ type?: string; text?: string }> }).content
+            const content = (
+              result as { content?: Array<{ type?: string; text?: string }> }
+            ).content
             if (Array.isArray(content) && content.length > 0) {
               const firstContent = content[0]
               if (firstContent.type === 'text' && firstContent.text) {
@@ -462,6 +477,17 @@ export class WorkerManager {
           transportOptions.requestInit = {
             headers: config.headers,
           }
+          // Debug: log headers being passed (mask sensitive values)
+          const maskedHeaders = Object.fromEntries(
+            Object.entries(config.headers).map(([k, v]) => [
+              k,
+              k.toLowerCase().includes('auth') ? `${v.substring(0, 15)}...` : v,
+            ]),
+          )
+          logger.info(
+            { mcpName, url: config.url, headers: maskedHeaders },
+            'loadMCPSchemaOnly: passing headers to StreamableHTTPClientTransport',
+          )
         }
 
         transport = new StreamableHTTPClientTransport(url, transportOptions)
@@ -482,6 +508,11 @@ export class WorkerManager {
 
       // Fetch tools
       const toolsResponse = await client.listTools()
+      
+      logger.info(
+        { mcpName, toolCount: toolsResponse.tools.length },
+        `loadMCPSchemaOnly: received ${toolsResponse.tools.length} tools`,
+      )
 
       // Convert to MCPTool format
       const tools: MCPTool[] = toolsResponse.tools.map((tool) => ({
@@ -514,9 +545,10 @@ export class WorkerManager {
       return tools
     } catch (error: unknown) {
       // Check for authentication errors (401/403) which may indicate OAuth is required
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       const isAuthError = /401|403|Unauthorized|Forbidden/i.test(errorMessage)
-      
+
       if (isAuthError) {
         logger.warn(
           { error, mcpName },
@@ -642,9 +674,10 @@ export class WorkerManager {
       return prompts
     } catch (error: unknown) {
       // Check for authentication errors (401/403) which may indicate OAuth is required
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
       const isAuthError = /401|403|Unauthorized|Forbidden/i.test(errorMessage)
-      
+
       if (isAuthError) {
         logger.warn(
           { error, mcpName },
@@ -763,7 +796,13 @@ export class WorkerManager {
           cachedAt: new Date(),
         })
         logger.debug(
-          { mcpId, mcpName, cacheKey, toolCount: tools.length, promptCount: prompts.length },
+          {
+            mcpId,
+            mcpName,
+            cacheKey,
+            toolCount: tools.length,
+            promptCount: prompts.length,
+          },
           'Cached MCP schema',
         )
 
@@ -1276,6 +1315,22 @@ export class WorkerManager {
           transportOptions.requestInit = {
             headers: config.headers,
           }
+          // Debug: log headers being passed (mask sensitive values)
+          const maskedHeaders = Object.fromEntries(
+            Object.entries(config.headers).map(([k, v]) => [
+              k,
+              k.toLowerCase().includes('auth') ? `${v.substring(0, 15)}...` : v,
+            ]),
+          )
+          logger.info(
+            { mcpId, mcpName, url: config.url, headers: maskedHeaders },
+            'URL-based MCP: passing headers to StreamableHTTPClientTransport',
+          )
+        } else {
+          logger.info(
+            { mcpId, mcpName, url: config.url },
+            'URL-based MCP: no custom headers configured',
+          )
         }
 
         transport = new StreamableHTTPClientTransport(url, transportOptions)
@@ -1340,15 +1395,17 @@ export class WorkerManager {
       const listToolsStartTime = Date.now()
       const toolsResponse = await client.listTools()
       const listToolsTime = Date.now() - listToolsStartTime
-      // Don't log schema details - just timing
-      logger.debug(
+      
+      // Log tool count at info level to help diagnose issues
+      logger.info(
         {
           mcpId,
           mcpName,
           toolCount: toolsResponse.tools.length,
           listToolsTimeMs: listToolsTime,
+          toolNames: toolsResponse.tools.slice(0, 5).map(t => t.name), // First 5 tools for debugging
         },
-        'Fetched tools from MCP server',
+        `Fetched ${toolsResponse.tools.length} tools from MCP server`,
       )
 
       // Convert MCP SDK tool format to our MCPTool format
@@ -1407,7 +1464,6 @@ export class WorkerManager {
     }
   }
 
-
   private async generateWorkerCode(
     mcpId: string,
     tools: MCPTool[],
@@ -1454,7 +1510,7 @@ export class WorkerManager {
     }`
       })
       .join(',\n')
-    
+
     logger.debug(
       { mcpId, bindingStubsPreview: mcpBindingStubs.substring(0, 500) },
       'Generated MCP binding stubs',
@@ -1469,7 +1525,7 @@ export class WorkerManager {
     // Uses Service Bindings for secure MCP access (no fetch() needed - true isolation)
     // User code is embedded directly as executable JavaScript (no escaping needed)
     logger.debug(
-      { 
+      {
         codeLength: userCode.length,
         preview: userCode.substring(0, 200),
       },
@@ -1478,7 +1534,7 @@ export class WorkerManager {
 
     // Build worker script using string concatenation to avoid esbuild parsing issues
     // We can't mix template literals with string concatenation, so we use all string concatenation
-    // 
+    //
     // IMPORTANT: The fetch wrapper is placed at MODULE LEVEL (not inside the fetch handler)
     // This ensures it runs before the Cloudflare runtime can freeze globalThis.fetch
     const modulePrelude = networkEnabled
@@ -1508,121 +1564,123 @@ export class WorkerManager {
         '// Override globalThis.fetch at module level\n' +
         'globalThis.fetch = __mcpguardFetchWrapper;\n\n'
       : ''
-    
-    const workerScript = 
-'// Dynamic Worker that executes AI-generated code\n' +
-'// This Worker is spawned via Worker Loader API from the parent Worker\n' +
-(networkEnabled 
-  ? '// Network access enabled with domain allowlist enforcement\n'
-  : '// Uses Service Bindings for secure MCP access (globalOutbound: null enabled)\n') +
-modulePrelude +
-'export default {\n' +
-'  async fetch(request, env, ctx) {\n' +
-'    const { code, timeout = 30000 } = await request.json();\n' +
-'    \n' +
-'    // Capture console output\n' +
-'    const logs = [];\n' +
-'    const originalLog = console.log;\n' +
-'    const originalError = console.error;\n' +
-'    const originalWarn = console.warn;\n' +
-'\n' +
-'    console.log = (...args) => {\n' +
-'      logs.push(args.map(a => typeof a === \'object\' ? JSON.stringify(a) : String(a)).join(\' \'));\n' +
-'    };\n' +
-'\n' +
-'    console.error = (...args) => {\n' +
-'      logs.push(\'ERROR: \' + args.map(a => typeof a === \'object\' ? JSON.stringify(a) : String(a)).join(\' \'));\n' +
-'    };\n' +
-'\n' +
-'    console.warn = (...args) => {\n' +
-'      logs.push(\'WARN: \' + args.map(a => typeof a === \'object\' ? JSON.stringify(a) : String(a)).join(\' \'));\n' +
-'    };\n' +
-'\n' +
-'    let mcpCallCount = 0;\n' +
-'    const toolsCalled = new Set();\n' +
-'    let result;\n' +
-'\n' +
-'    try {\n' +
-'      // Create MCP binding implementation using Service Binding (env.MCP)\n' +
-'      // The Service Binding is provided by the parent Worker and allows secure MCP access\n' +
-'      // without requiring fetch() - enabling true network isolation (globalOutbound: null)\n' +
-'      // Reference: https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/\n' +
-'      const mcpBinding = {\n' +
-mcpBindingStubs + '\n' +
-'      };\n' +
-'\n' +
-'      // Create MCP proxy to track calls and tool names\n' +
-'      // Also provide better error messages when a tool is not found\n' +
-'      const mcp = new Proxy(mcpBinding, {\n' +
-'        get(target, prop) {\n' +
-'          const original = target[prop];\n' +
-'          if (typeof original === \'function\') {\n' +
-'            return async (...args) => {\n' +
-'              mcpCallCount++;\n' +
-'              toolsCalled.add(String(prop));\n' +
-'              return await original.apply(target, args);\n' +
-'            };\n' +
-'          }\n' +
-'          // Tool not found - provide helpful error message\n' +
-'          // Skip special properties like \'then\' (for await) and Symbol properties\n' +
-'          if (prop !== \'then\' && typeof prop !== \'symbol\') {\n' +
-'            const availableTools = Object.keys(target).join(\', \');\n' +
-'            throw new Error(`Tool "${String(prop)}" not found. Available tools: ${availableTools || \'none\'}`);\n' +
-'          }\n' +
-'          return original;\n' +
-'        },\n' +
-'      });\n' +
-'\n' +
-'      // Execute the user-provided code\n' +
-'      // The user code is embedded directly in this Worker module as executable statements\n' +
-'      // Each execution gets a fresh Worker isolate via Worker Loader API\n' +
-'      // Note: Function constructor and eval() are disallowed in Workers (CSP), so code must be embedded directly\n' +
-'      const executeWithTimeout = async () => {\n' +
-'        // User code is embedded below - it has access to \'mcp\' and \'env\'\n' +
-'        // fetch() is our wrapped version (set at module level)\n' +
-'        // User code embedded below\n' +
-userCode + '\n' +
-'      };\n' +
-'\n' +
-'      const timeoutPromise = new Promise((_, reject) => \n' +
-'        setTimeout(() => reject(new Error(\'Execution timeout\')), timeout)\n' +
-'      );\n' +
-'\n' +
-'      result = await Promise.race([executeWithTimeout(), timeoutPromise]);\n' +
-'\n' +
-'      return new Response(JSON.stringify({\n' +
-'        success: true,\n' +
-'        output: logs.join(\'\\\\n\'),\n' +
-'        result: result !== undefined ? result : null,\n' +
-'        metrics: {\n' +
-'          mcp_calls_made: mcpCallCount,\n' +
-'          tools_called: Array.from(toolsCalled),\n' +
-'        },\n' +
-'      }), {\n' +
-'        headers: { \'Content-Type\': \'application/json\' },\n' +
-'      });\n' +
-'    } catch (error) {\n' +
-'      return new Response(JSON.stringify({\n' +
-'        success: false,\n' +
-'        error: error.message,\n' +
-'        stack: error.stack,\n' +
-'        output: logs.join(\'\\\\n\'),\n' +
-'        metrics: {\n' +
-'          mcp_calls_made: mcpCallCount,\n' +
-'          tools_called: Array.from(toolsCalled),\n' +
-'        },\n' +
-'      }), {\n' +
-'        status: 500,\n' +
-'        headers: { \'Content-Type\': \'application/json\' },\n' +
-'      });\n' +
-'    } finally {\n' +
-'      // Restore console methods\n' +
-'      console.log = originalLog;\n' +
-'      console.error = originalError;\n' +
-'      console.warn = originalWarn;\n' +
-'    }\n' +
-'  }\n' +
-'};\n'
+
+    const workerScript =
+      '// Dynamic Worker that executes AI-generated code\n' +
+      '// This Worker is spawned via Worker Loader API from the parent Worker\n' +
+      (networkEnabled
+        ? '// Network access enabled with domain allowlist enforcement\n'
+        : '// Uses Service Bindings for secure MCP access (globalOutbound: null enabled)\n') +
+      modulePrelude +
+      'export default {\n' +
+      '  async fetch(request, env, ctx) {\n' +
+      '    const { code, timeout = 30000 } = await request.json();\n' +
+      '    \n' +
+      '    // Capture console output\n' +
+      '    const logs = [];\n' +
+      '    const originalLog = console.log;\n' +
+      '    const originalError = console.error;\n' +
+      '    const originalWarn = console.warn;\n' +
+      '\n' +
+      '    console.log = (...args) => {\n' +
+      "      logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));\n" +
+      '    };\n' +
+      '\n' +
+      '    console.error = (...args) => {\n' +
+      "      logs.push('ERROR: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));\n" +
+      '    };\n' +
+      '\n' +
+      '    console.warn = (...args) => {\n' +
+      "      logs.push('WARN: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));\n" +
+      '    };\n' +
+      '\n' +
+      '    let mcpCallCount = 0;\n' +
+      '    const toolsCalled = new Set();\n' +
+      '    let result;\n' +
+      '\n' +
+      '    try {\n' +
+      '      // Create MCP binding implementation using Service Binding (env.MCP)\n' +
+      '      // The Service Binding is provided by the parent Worker and allows secure MCP access\n' +
+      '      // without requiring fetch() - enabling true network isolation (globalOutbound: null)\n' +
+      '      // Reference: https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/\n' +
+      '      const mcpBinding = {\n' +
+      mcpBindingStubs +
+      '\n' +
+      '      };\n' +
+      '\n' +
+      '      // Create MCP proxy to track calls and tool names\n' +
+      '      // Also provide better error messages when a tool is not found\n' +
+      '      const mcp = new Proxy(mcpBinding, {\n' +
+      '        get(target, prop) {\n' +
+      '          const original = target[prop];\n' +
+      "          if (typeof original === 'function') {\n" +
+      '            return async (...args) => {\n' +
+      '              mcpCallCount++;\n' +
+      '              toolsCalled.add(String(prop));\n' +
+      '              return await original.apply(target, args);\n' +
+      '            };\n' +
+      '          }\n' +
+      '          // Tool not found - provide helpful error message\n' +
+      "          // Skip special properties like 'then' (for await) and Symbol properties\n" +
+      "          if (prop !== 'then' && typeof prop !== 'symbol') {\n" +
+      "            const availableTools = Object.keys(target).join(', ');\n" +
+      '            throw new Error(`Tool "${String(prop)}" not found. Available tools: ${availableTools || \'none\'}`);\n' +
+      '          }\n' +
+      '          return original;\n' +
+      '        },\n' +
+      '      });\n' +
+      '\n' +
+      '      // Execute the user-provided code\n' +
+      '      // The user code is embedded directly in this Worker module as executable statements\n' +
+      '      // Each execution gets a fresh Worker isolate via Worker Loader API\n' +
+      '      // Note: Function constructor and eval() are disallowed in Workers (CSP), so code must be embedded directly\n' +
+      '      const executeWithTimeout = async () => {\n' +
+      "        // User code is embedded below - it has access to 'mcp' and 'env'\n" +
+      '        // fetch() is our wrapped version (set at module level)\n' +
+      '        // User code embedded below\n' +
+      userCode +
+      '\n' +
+      '      };\n' +
+      '\n' +
+      '      const timeoutPromise = new Promise((_, reject) => \n' +
+      "        setTimeout(() => reject(new Error('Execution timeout')), timeout)\n" +
+      '      );\n' +
+      '\n' +
+      '      result = await Promise.race([executeWithTimeout(), timeoutPromise]);\n' +
+      '\n' +
+      '      return new Response(JSON.stringify({\n' +
+      '        success: true,\n' +
+      "        output: logs.join('\\\\n'),\n" +
+      '        result: result !== undefined ? result : null,\n' +
+      '        metrics: {\n' +
+      '          mcp_calls_made: mcpCallCount,\n' +
+      '          tools_called: Array.from(toolsCalled),\n' +
+      '        },\n' +
+      '      }), {\n' +
+      "        headers: { 'Content-Type': 'application/json' },\n" +
+      '      });\n' +
+      '    } catch (error) {\n' +
+      '      return new Response(JSON.stringify({\n' +
+      '        success: false,\n' +
+      '        error: error.message,\n' +
+      '        stack: error.stack,\n' +
+      "        output: logs.join('\\\\n'),\n" +
+      '        metrics: {\n' +
+      '          mcp_calls_made: mcpCallCount,\n' +
+      '          tools_called: Array.from(toolsCalled),\n' +
+      '        },\n' +
+      '      }), {\n' +
+      '        status: 500,\n' +
+      "        headers: { 'Content-Type': 'application/json' },\n" +
+      '      });\n' +
+      '    } finally {\n' +
+      '      // Restore console methods\n' +
+      '      console.log = originalLog;\n' +
+      '      console.error = originalError;\n' +
+      '      console.warn = originalWarn;\n' +
+      '    }\n' +
+      '  }\n' +
+      '};\n'
 
     return {
       compatibilityDate: '2025-06-01',
@@ -1642,7 +1700,7 @@ userCode + '\n' +
       // Network isolation configuration:
       // - null: Complete isolation - fetch() will not be available (default)
       // - FetchProxy: Controlled access - parent Worker sets globalOutbound to FetchProxy
-      // 
+      //
       // The parent Worker (runtime.ts) will override this with FetchProxy when NETWORK_ENABLED=true.
       // FetchProxy enforces the allowlist and proxies allowed requests.
       // When NETWORK_ENABLED=false, globalOutbound stays null (no fetch).
@@ -1681,15 +1739,15 @@ userCode + '\n' +
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       const errorCode = (error as NodeJS.ErrnoException)?.code
-      
+
       // More specific detection: only ENOENT errors that mention spawn or the command
-      const isSpawnENOENT = 
+      const isSpawnENOENT =
         errorCode === 'ENOENT' ||
-        (errorMessage.includes('ENOENT') && 
-         (errorMessage.includes('spawn') || 
-          errorMessage.includes('Failed to spawn') ||
-          errorMessage.includes('npx') ||
-          errorMessage.includes('npx.cmd')))
+        (errorMessage.includes('ENOENT') &&
+          (errorMessage.includes('spawn') ||
+            errorMessage.includes('Failed to spawn') ||
+            errorMessage.includes('npx') ||
+            errorMessage.includes('npx.cmd')))
 
       // If Wrangler spawn failed (command not found), mark as unavailable
       if (isSpawnENOENT && this.wranglerAvailable === null) {
@@ -1718,14 +1776,12 @@ userCode + '\n' +
     }
   }
 
-
-
   /**
    * Determine the correct Worker runtime entry point based on environment
    * Checks once and caches the result (includes one-time file existence check)
-   * 
+   *
    * TODO: Once we see the logged absolute path, hardcode it here to remove file system checks
-   * 
+   *
    * Detection priority:
    * 1. NODE_ENV environment variable (set to 'development' in MCP config for dev mode)
    * 2. Process argv detection (running via tsx)
@@ -1738,28 +1794,28 @@ userCode + '\n' +
     }
 
     const cwd = process.cwd()
-    
+
     // Check NODE_ENV (can be set in MCP config: env: { NODE_ENV: 'development' })
     const nodeEnv = process.env.NODE_ENV
     const isNodeEnvDev = nodeEnv === 'development'
     const isNodeEnvProd = nodeEnv === 'production'
-    
+
     // Lightweight detection: check if running via tsx
-    const isRunningViaTsx = 
-      process.argv[1]?.includes('tsx') || 
+    const isRunningViaTsx =
+      process.argv[1]?.includes('tsx') ||
       process.argv[0]?.includes('tsx') ||
       process.argv[1]?.includes('src/server/index.ts') ||
       process.argv[1]?.includes('src\\server\\index.ts')
-    
+
     // Determine if we're in dev mode
     const isDevMode = isNodeEnvDev || (!isNodeEnvProd && isRunningViaTsx)
-    
+
     // Check which file actually exists (one-time check, then cached)
     const devPath = join(cwd, 'src', 'worker', 'runtime.ts')
     const prodPath = join(cwd, 'dist', 'worker', 'runtime.js')
     const devExists = existsSync(devPath)
     const prodExists = existsSync(prodPath)
-    
+
     // Determine entry point: prefer dev if in dev mode and file exists, otherwise use prod if exists
     let entryPoint: string
     if (isDevMode && devExists) {
@@ -1781,10 +1837,10 @@ userCode + '\n' +
         'Production entry point file not found, using prod path anyway',
       )
     }
-    
+
     // Cache the result
     this.cachedWorkerEntryPoint = entryPoint
-    
+
     logger.info(
       {
         entryPoint,
@@ -1797,7 +1853,7 @@ userCode + '\n' +
       },
       'Determined Worker entry point (cached)',
     )
-    
+
     return entryPoint
   }
 
@@ -1853,20 +1909,20 @@ userCode + '\n' +
         { mcpId, port },
         'Starting Wrangler dev server for parent Worker',
       )
-      
+
       // Determine the correct entry point based on environment (dev vs prod)
       const baseEntryPoint = this.getWorkerEntryPoint()
-      
+
       // CRITICAL: Always use project root as CWD when spawning Wrangler
       // Test script showed that relative paths only work when CWD is the project root
       // When MCP server runs from a different directory, process.cwd() won't be the project root
       const wranglerCwd = this.projectRoot || process.cwd()
       const entryPointPath = resolve(wranglerCwd, baseEntryPoint)
       const entryPointExists = existsSync(entryPointPath)
-      
+
       // Use relative path from project root (test showed this works when CWD is project root)
       const entryPointForWrangler = baseEntryPoint
-      
+
       logger.info(
         {
           mcpId,
@@ -1881,7 +1937,7 @@ userCode + '\n' +
         },
         'Spawning Wrangler - using project root as CWD',
       )
-      
+
       // Verify the entry point exists before spawning
       if (!entryPointExists) {
         const error = new Error(
@@ -1891,10 +1947,13 @@ userCode + '\n' +
             `  - Full path: ${entryPointPath}\n` +
             `  - Exists: ${entryPointExists}`,
         )
-        logger.error({ error, wranglerCwd, baseEntryPoint, entryPointPath }, 'Entry point not found')
+        logger.error(
+          { error, wranglerCwd, baseEntryPoint, entryPointPath },
+          'Entry point not found',
+        )
         throw error
       }
-      
+
       // Build Wrangler command args
       // Pass entry point directly on command line - wrangler.toml only needs worker_loaders binding
       const wranglerArgs: string[] = [
@@ -1905,7 +1964,7 @@ userCode + '\n' +
         '--port',
         port.toString(),
       ]
-      
+
       // Spawn Wrangler process
       // Note: spawn doesn't throw synchronously - errors come through 'error' event
       wranglerProcess = spawn(npxCmd, wranglerArgs, {
@@ -1981,13 +2040,17 @@ userCode + '\n' +
         // Check if spawn failed immediately (e.g., command not found)
         if (spawnError) {
           const spawnErrnoError = spawnError as NodeJS.ErrnoException
-          const isENOENT = spawnErrnoError.code === 'ENOENT' || spawnError.message.includes('ENOENT')
+          const isENOENT =
+            spawnErrnoError.code === 'ENOENT' ||
+            spawnError.message.includes('ENOENT')
           if (isENOENT) {
-            reject(new Error(
-              `Failed to spawn Wrangler: ${spawnError.message}\n` +
-              `Command: ${npxCmd} ${wranglerArgs.join(' ')}\n` +
-              `This usually means npx or wrangler is not installed or not in PATH.`
-            ))
+            reject(
+              new Error(
+                `Failed to spawn Wrangler: ${spawnError.message}\n` +
+                  `Command: ${npxCmd} ${wranglerArgs.join(' ')}\n` +
+                  `This usually means npx or wrangler is not installed or not in PATH.`,
+              ),
+            )
             return
           }
           // Other spawn errors - still reject but don't classify as "not found"
@@ -2081,13 +2144,16 @@ userCode + '\n' +
           errorHandled = true
           clearTimeout(timeout)
           // Check if this is a spawn ENOENT error (command not found)
-          const isENOENT = error.code === 'ENOENT' || error.message.includes('ENOENT')
+          const isENOENT =
+            error.code === 'ENOENT' || error.message.includes('ENOENT')
           if (isENOENT) {
-            reject(new Error(
-              `Failed to spawn Wrangler: ${error.message}\n` +
-              `Command: ${npxCmd} ${wranglerArgs.join(' ')}\n` +
-              `This usually means npx or wrangler is not installed or not in PATH.`
-            ))
+            reject(
+              new Error(
+                `Failed to spawn Wrangler: ${error.message}\n` +
+                  `Command: ${npxCmd} ${wranglerArgs.join(' ')}\n` +
+                  `This usually means npx or wrangler is not installed or not in PATH.`,
+              ),
+            )
           } else {
             reject(new Error(`Wrangler process error: ${error.message}`))
           }
