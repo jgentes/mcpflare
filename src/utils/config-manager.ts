@@ -659,6 +659,9 @@ export class ConfigManager {
       )
       if (detectedIDE) {
         this.configSource = detectedIDE.id
+      } else {
+        // Default to cursor if no IDE detected (e.g., test paths)
+        this.configSource = 'cursor'
       }
 
       if (existsSync(configPath)) {

@@ -233,11 +233,11 @@ describe('MCPGuardWebviewProvider', () => {
         expect(mockView.badge?.tooltip).toContain('2 MCP');
       });
 
-      it('should show warning badge when no MCPs found', async () => {
+      it('should hide badge when no MCPs found', async () => {
         await messageHandler({ type: 'getMCPServers' });
 
-        expect(mockView.badge?.value).toBe('!');
-        expect(mockView.badge?.tooltip).toContain('No MCP servers detected');
+        // Badge is set to undefined when no MCPs found (0 would be misleading)
+        expect(mockView.badge).toBeUndefined();
       });
     });
 
