@@ -605,8 +605,13 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
     postMessage({ type: 'openExternalLink', url: CONTEXT_WINDOW_ARTICLE_URL })
   }
 
+  // Check if we have any servers with token metrics directly from the servers prop
+  // This is more reliable than relying solely on tokenSavings.assessedMCPs which can be stale
+  const serversWithTokenMetrics = servers.filter((s) => s.tokenMetrics?.estimatedTokens)
+  const hasTokenData = serversWithTokenMetrics.length > 0
+
   // No servers with token metrics yet
-  if (!tokenSavings || tokenSavings.assessedMCPs === 0) {
+  if (!hasTokenData) {
     // Still assessing
     if (isAssessing) {
       return (
@@ -2262,6 +2267,22 @@ export const MCPCard: React.FC<MCPCardProps> = ({
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontWeight: 600 }}>{server.name}</span>
+            {/* Disabled in IDE indicator - shown when MCP is disabled in its source IDE */}
+            {!server.enabled && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  padding: '2px 6px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(107, 114, 128, 0.15)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 500,
+                }}
+                title={`Disabled in ${server.source === 'claude' ? 'Claude Code' : server.source === 'copilot' ? 'GitHub Copilot' : 'Cursor'} settings`}
+              >
+                Disabled in IDE
+              </span>
+            )}
             {/* Source IDE indicator - only shown when MCP is from a different IDE */}
             {server.source !== currentIDE && server.source !== 'unknown' && (
               <>
