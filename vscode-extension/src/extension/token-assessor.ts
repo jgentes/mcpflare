@@ -350,11 +350,34 @@ async function assessURLBasedMCP(
       }
 
       if (statusCode === 401 || statusCode === 403) {
-        // Check for OAuth requirement from WWW-Authenticate header first
+        // Check if the user has already configured auth headers
+        const hasAuthHeaders = server.headers && Object.keys(server.headers).some(
+          (key) => key.toLowerCase() === 'authorization' || key.toLowerCase().includes('token') || key.toLowerCase().includes('key')
+        )
+        
+        console.log(`Token Assessor: ${server.name} got ${statusCode}, hasAuthHeaders: ${hasAuthHeaders}`)
+        
+        // If user has configured auth headers and we still get 401/403, it's an auth failure
+        // Don't check for OAuth - the user's token is likely wrong/expired
+        if (hasAuthHeaders) {
+          console.log(`Token Assessor: ${server.name} has auth headers configured but got ${statusCode} - auth_failed`)
+          return {
+            error: {
+              type: 'auth_failed',
+              message: `Authentication failed (HTTP ${statusCode}${statusText ? ' ' + statusText : ''}). Your configured auth token may be invalid or expired.`,
+              statusCode,
+              statusText,
+              errorAt: new Date().toISOString(),
+              diagnostics,
+            },
+          }
+        }
+        
+        // No auth headers configured - check if this server requires OAuth
         const wwwAuth = initResponse.headers.get('www-authenticate') || ''
         const isOAuthBearer = wwwAuth.toLowerCase().includes('bearer')
         
-        console.log(`Token Assessor: ${server.name} got ${statusCode}, checking OAuth...`)
+        console.log(`Token Assessor: ${server.name} checking OAuth requirement...`)
         console.log(`Token Assessor: WWW-Authenticate header: "${wwwAuth}"`)
         console.log(`Token Assessor: isOAuthBearer: ${isOAuthBearer}`)
         
@@ -385,11 +408,11 @@ async function assessURLBasedMCP(
           }
         }
 
-        console.log(`Token Assessor: ${server.name} - no OAuth detected, returning auth_failed`)
+        console.log(`Token Assessor: ${server.name} - no OAuth detected and no auth headers, returning auth_failed`)
         return {
           error: {
             type: 'auth_failed',
-            message: `Authentication failed (HTTP ${statusCode}${statusText ? ' ' + statusText : ''}). Check your Authorization header.`,
+            message: `Authentication required (HTTP ${statusCode}${statusText ? ' ' + statusText : ''}). Configure an Authorization header for this MCP.`,
             statusCode,
             statusText,
             errorAt: new Date().toISOString(),

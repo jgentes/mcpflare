@@ -1141,6 +1141,17 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
         }
       } catch (error) {
         console.error(`Auto-assessment failed for ${server.name}:`, error)
+        
+        // Store the error so we don't keep retrying
+        if (!settings.assessmentErrorsCache) {
+          settings.assessmentErrorsCache = {}
+        }
+        settings.assessmentErrorsCache[server.name] = {
+          type: 'unknown',
+          message: error instanceof Error ? error.message : 'Assessment threw an exception',
+          errorAt: new Date().toISOString(),
+        }
+        
         this._postMessage({
           type: 'tokenAssessmentProgress',
           mcpName: server.name,

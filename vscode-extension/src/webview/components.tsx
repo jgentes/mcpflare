@@ -1158,6 +1158,58 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
         )}
       </div>
 
+      {/* Note about MCPs not shown in graph (no token data) */}
+      {(() => {
+        const mcpsWithoutTokens = servers.filter(
+          (s) => !s.tokenMetrics?.estimatedTokens
+        )
+        if (mcpsWithoutTokens.length === 0) return null
+        
+        return (
+          <div
+            style={{
+              marginTop: '8px',
+              fontSize: '10px',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span>Not shown:</span>
+            {mcpsWithoutTokens.map((mcp, index) => (
+              <span key={mcp.name}>
+                <span
+                  style={{ fontWeight: 500 }}
+                  title={
+                    mcp.assessmentError?.type === 'oauth_required'
+                      ? 'OAuth MCPs cannot be assessed'
+                      : mcp.assessmentError?.type === 'auth_failed'
+                        ? 'Authentication failed'
+                        : mcp.assessmentError
+                          ? mcp.assessmentError.message
+                          : 'Not yet assessed'
+                  }
+                >
+                  {mcp.name}
+                </span>
+                {mcp.assessmentError?.type === 'oauth_required' && (
+                  <span style={{ color: '#f97316' }}> (OAuth)</span>
+                )}
+                {mcp.assessmentError?.type === 'auth_failed' && (
+                  <span style={{ color: 'var(--error)' }}> (auth)</span>
+                )}
+                {!mcp.assessmentError && (
+                  <span> (pending)</span>
+                )}
+                {index < mcpsWithoutTokens.length - 1 && ', '}
+              </span>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* Potential Savings - show what could be saved by guarding unguarded MCPs */}
       {unguardedMcps.length > 0 &&
         unguardedTokens > MCPGUARD_BASELINE_TOKENS && (
