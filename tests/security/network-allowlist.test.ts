@@ -153,15 +153,18 @@ describe('Security: Network Allowlist Enforcement', () => {
       expect(instance).toBeDefined()
 
       // Try to fetch from a non-allowed domain (should be blocked by allowlist)
+      // Wrap in async IIFE and await it to ensure all errors are caught
       const code = `
-        try {
-          // This domain is NOT in the allowlist
-          const response = await fetch('https://httpcats.com/200.jpg');
-          console.log('Fetch succeeded - SECURITY BREACH!');
-        } catch (error) {
-          console.log('Fetch blocked by allowlist:', error.message);
-          console.log('SECURITY: Non-allowed domain correctly rejected');
-        }
+        await (async () => {
+          try {
+            // This domain is NOT in the allowlist
+            const response = await fetch('https://httpcats.com/200.jpg');
+            console.log('Fetch succeeded - SECURITY BREACH!');
+          } catch (error) {
+            console.log('Fetch blocked by allowlist:', error.message || String(error));
+            console.log('SECURITY: Non-allowed domain correctly rejected');
+          }
+        })();
       `
 
       const result = await manager.executeCode(instance.mcp_id, code, 30000)
