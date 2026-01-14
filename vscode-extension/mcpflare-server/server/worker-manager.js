@@ -138,7 +138,7 @@ export class WorkerManager {
                 res.end(JSON.stringify({
                     success: false,
                     error: errorMessage,
-                    stack: errorStack,
+                    // Don't expose stack traces in API responses - security risk
                 }));
             }
         });
@@ -720,7 +720,18 @@ export class WorkerManager {
                 if (process.platform === 'win32') {
                     spawnOptions.shell = true;
                 }
-                logger.debug({ spawnOptions }, 'Spawning with options');
+                // Log spawn options without sensitive environment variables
+                const safeSpawnOptions = {
+                    ...spawnOptions,
+                    env: spawnOptions.env
+                        ? Object.keys(spawnOptions.env).reduce((acc, key) => {
+                            // Only log non-sensitive env var names, not values
+                            acc[key] = '[REDACTED]';
+                            return acc;
+                        }, {})
+                        : undefined,
+                };
+                logger.debug({ spawnOptions: safeSpawnOptions }, 'Spawning with options');
                 mcpProcess = spawn(command, args, spawnOptions);
                 logger.info({
                     pid: mcpProcess.pid,
@@ -942,7 +953,15 @@ export class WorkerManager {
         logger.debug({ mcpId, toolCount: tools.length, toolNames: tools.map((t) => t.name) }, 'Generating MCP binding stubs');
         const mcpBindingStubs = tools
             .map((tool) => {
-            const escapedToolName = tool.name.replace(/'/g, "\\'");
+            // Escape tool name for use in template string - escape all special characters
+            // Escape backslashes first, then quotes, then other control characters
+            const escapedToolName = tool.name
+                .replace(/\\/g, '\\\\') // Escape backslashes
+                .replace(/'/g, "\\'") // Escape single quotes
+                .replace(/"/g, '\\"') // Escape double quotes
+                .replace(/\n/g, '\\n') // Escape newlines
+                .replace(/\r/g, '\\r') // Escape carriage returns
+                .replace(/\t/g, '\\t'); // Escape tabs
             return `    ${tool.name}: async (input) => {
       // Call MCP tool via Service Binding (no fetch() needed - native RPC)
       // The Service Binding is provided by the parent Worker and bridges to Node.js RPC server

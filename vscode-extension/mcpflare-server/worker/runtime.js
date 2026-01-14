@@ -148,11 +148,13 @@ export default {
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorStack = error instanceof Error ? error.stack : undefined;
+            // Log stack trace internally but don't expose it in the response
+            console.error('Failed to execute code in Worker isolate:', errorMessage, errorStack);
             return new Response(JSON.stringify({
                 success: false,
                 error: 'Failed to execute code in Worker isolate',
                 message: errorMessage,
-                stack: errorStack,
+                // Don't expose stack traces in API responses - security risk
             }), {
                 status: 500,
                 headers: {

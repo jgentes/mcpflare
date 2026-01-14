@@ -378,7 +378,8 @@ async function assessURLBasedMCP(
         const isOAuthBearer = wwwAuth.toLowerCase().includes('bearer')
         
         console.log(`Token Assessor: ${server.name} checking OAuth requirement...`)
-        console.log(`Token Assessor: WWW-Authenticate header: "${wwwAuth}"`)
+        // Don't log full WWW-Authenticate header - may contain sensitive auth scheme info
+        console.log(`Token Assessor: WWW-Authenticate header present: ${wwwAuth.length > 0}`)
         console.log(`Token Assessor: isOAuthBearer: ${isOAuthBearer}`)
         
         // Also check well-known endpoint for OAuth metadata
@@ -1293,7 +1294,8 @@ export async function testMCPConnection(
         const isOAuthBearer = wwwAuth.toLowerCase().includes('bearer')
         
         console.log(`Connection Test: ${server.name} got ${initResponse.status}, checking OAuth...`)
-        console.log(`Connection Test: WWW-Authenticate header: "${wwwAuth}"`)
+        // Don't log full WWW-Authenticate header - may contain sensitive auth scheme info
+        console.log(`Connection Test: WWW-Authenticate header present: ${wwwAuth.length > 0}`)
         console.log(`Connection Test: isOAuthBearer: ${isOAuthBearer}`)
         
         // Also check well-known endpoint for OAuth metadata
