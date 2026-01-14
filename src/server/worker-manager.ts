@@ -1,8 +1,4 @@
-import {
-  type ChildProcess,
-  type SpawnOptions,
-  spawn,
-} from 'node:child_process'
+import { type ChildProcess, type SpawnOptions, spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import {
@@ -2540,16 +2536,20 @@ export class WorkerManager {
         // On Windows, use taskkill to kill the process tree
         // /F = force kill, /T = kill child processes, /PID = process ID
         // Use spawn with arguments instead of exec with string interpolation to prevent command injection
-        const taskkillProcess = spawn('taskkill', ['/F', '/T', '/PID', String(pid)], {
-          stdio: 'ignore',
-          shell: false,
-        })
-        
+        const taskkillProcess = spawn(
+          'taskkill',
+          ['/F', '/T', '/PID', String(pid)],
+          {
+            stdio: 'ignore',
+            shell: false,
+          },
+        )
+
         taskkillProcess.on('exit', () => {
           // Ignore errors - process might already be dead
           resolve()
         })
-        
+
         taskkillProcess.on('error', () => {
           // Ignore errors - process might already be dead
           resolve()
