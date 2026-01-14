@@ -1,6 +1,6 @@
 ---
 title: VS Code Extension
-description: Configure MCP Guard using the VS Code extension interface.
+description: Configure MCPflare using the VS Code extension interface.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -20,7 +20,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ### Open the Panel
 
-Click the **shield icon** 🛡️ in the activity bar (left sidebar) to open MCP Guard.
+Click the **shield icon** 🛡️ in the activity bar (left sidebar) to open MCPflare.
 
 ### View Your MCPs
 
@@ -54,7 +54,7 @@ Click on any MCP to expand its settings and configure network, file system, and 
 </Callout>
 
 <Callout type="info" title="What this controls">
-  These settings control **network access from code executed inside MCP Guard’s Worker isolate**. When enabled, MCP Guard allows `fetch()` in the isolate but enforces the host allowlist (and optional localhost).
+  These settings control **network access from code executed inside MCPflare’s Worker isolate**. When enabled, MCPflare allows `fetch()` in the isolate but enforces the host allowlist (and optional localhost).
 </Callout>
 
 ### File System Access
@@ -79,9 +79,9 @@ Access these commands via the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
 | Command | Description |
 |---------|-------------|
-| `MCP Guard: Open Settings` | Open the configuration panel |
-| `MCP Guard: Refresh MCP List` | Re-scan for MCP servers |
-| `MCP Guard: Import from IDE Config` | Import MCP configurations |
+| `MCPflare: Open Settings` | Open the configuration panel |
+| `MCPflare: Refresh MCP List` | Re-scan for MCP servers |
+| `MCPflare: Import from IDE Config` | Import MCP configurations |
 
 ## Security Model
 
@@ -94,7 +94,7 @@ The VS Code extension uses Cloudflare Workers isolates for execution:
 ## OAuth MCPs
 
 <Callout type="warning" title="OAuth MCPs Cannot Be Guarded">
-  MCPs that require OAuth authentication (like Atlassian, Google, or Slack MCPs) **cannot be guarded** by MCP Guard. These MCPs must be used directly through your IDE (Cursor or Claude Code).
+  MCPs that require OAuth authentication (like Atlassian, Google, or Slack MCPs) **cannot be guarded** by MCPflare. These MCPs must be used directly through your IDE (Cursor or Claude Code).
 </Callout>
 
 ### Why OAuth MCPs Are Not Supported
@@ -105,18 +105,18 @@ OAuth authentication requires a complex flow:
 3. The IDE receives and stores access/refresh tokens
 4. Tokens are automatically included in MCP requests
 
-When MCP Guard "guards" an MCP, it intercepts and proxies all communication. This breaks the OAuth token association because:
+When MCPflare "guards" an MCP, it intercepts and proxies all communication. This breaks the OAuth token association because:
 - The OAuth tokens are bound to the IDE's session
-- MCP Guard cannot access or forward these tokens
-- Guarding would require re-authenticating through MCP Guard (not supported)
+- MCPflare cannot access or forward these tokens
+- Guarding would require re-authenticating through MCPflare (not supported)
 
 ### How to Use OAuth MCPs
 
-1. **Leave unguarded**: Keep the MCP Guard toggle OFF for OAuth MCPs
+1. **Leave unguarded**: Keep the MCPflare toggle OFF for OAuth MCPs
 2. **Connect via IDE**: Use your IDE's native MCP settings to connect and authenticate
 3. **Use normally**: The MCP will work directly through your IDE without isolation
 
-MCP Guard automatically detects OAuth requirements and displays a "Cannot Guard" badge. You can still view and modify other configuration options for these MCPs.
+MCPflare automatically detects OAuth requirements and displays a "Cannot Guard" badge. You can still view and modify other configuration options for these MCPs.
 
 ### Identifying OAuth MCPs
 
@@ -142,12 +142,12 @@ Common OAuth MCPs include:
 
 2. Use the **Refresh MCP List** command to re-scan
 
-3. Check the Output panel (View → Output → MCP Guard) for errors
+3. Check the Output panel (View → Output → MCPflare) for errors
 
 ### Protection Not Working
 
 1. Ensure the MCP has protection **enabled** (toggle is on)
-2. Check that the MCP Guard server is running (visible in status bar)
+2. Check that the MCPflare server is running (visible in status bar)
 3. Restart VS Code if needed
 
 ### Network Requests Failing
@@ -159,6 +159,6 @@ If an MCP needs network access:
 
 ## Support
 
-- [Documentation](https://github.com/mcpguard/mcpguard)
-- [Report Issues](https://github.com/mcpguard/mcpguard/issues)
+- [Documentation](https://github.com/jgentes/mcpflare)
+- [Report Issues](https://github.com/jgentes/mcpflare/issues)
 

@@ -170,8 +170,8 @@ describe('WorkerManager', () => {
       expect(workerCode.env?.NETWORK_ENABLED).toBe('false')
       const code = workerCode.modules['worker.js'] as string
       // Should NOT have module-level fetch wrapper when network disabled
-      expect(code).not.toContain('__mcpguardFetchWrapper')
-      expect(code).not.toContain('X-MCPGuard-Allowed-Hosts')
+      expect(code).not.toContain('__mcpflareFetchWrapper')
+      expect(code).not.toContain('X-MCPflare-Allowed-Hosts')
     })
 
     it('should enable network via FetchProxy when allowlist has entries', async () => {
@@ -201,9 +201,9 @@ describe('WorkerManager', () => {
       const code = workerCode.modules['worker.js'] as string
       // Module-level fetch wrapper with allowlist as comma-separated string
       expect(code).toContain(
-        'const __mcpguardAllowedHosts = "api.github.com"',
+        'const __mcpflareAllowedHosts = "api.github.com"',
       )
-      expect(code).toContain('X-MCPGuard-Allowed-Hosts')
+      expect(code).toContain('X-MCPflare-Allowed-Hosts')
     })
 
     it('should enable network via FetchProxy when allowLocalhost is enabled', async () => {
@@ -232,8 +232,8 @@ describe('WorkerManager', () => {
       expect(workerCode.env?.NETWORK_ENABLED).toBe('true')
       const code = workerCode.modules['worker.js'] as string
       // Module-level fetch wrapper with localhost allowed
-      expect(code).toContain('const __mcpguardAllowLocalhost = "true"')
-      expect(code).toContain('X-MCPGuard-Allow-Localhost')
+      expect(code).toContain('const __mcpflareAllowLocalhost = "true"')
+      expect(code).toContain('X-MCPflare-Allow-Localhost')
     })
 
     it('should include tool bindings in generated code', async () => {

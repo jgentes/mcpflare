@@ -1,6 +1,6 @@
 {
-  "name": "mcpguard",
-  "displayName": "MCP Guard",
+  "name": "mcpflare",
+  "displayName": "MCPflare",
   "description": "Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%",
   "version": "0.1.0",
   "publisher": "forgedapps",
@@ -23,36 +23,36 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mcpguard",
-          "title": "MCP Guard",
+          "id": "mcpflare",
+          "title": "MCPflare",
           "icon": "media/shield.svg"
         }
       ]
     },
     "views": {
-      "mcpguard": [
+      "mcpflare": [
         {
           "type": "webview",
-          "id": "mcpguard.configPanel",
+          "id": "mcpflare.configPanel",
           "name": "Configuration"
         }
       ]
     },
     "commands": [
       {
-        "command": "mcpguard.openSettings",
-        "title": "Open MCP Guard Settings",
-        "category": "MCP Guard"
+        "command": "mcpflare.openSettings",
+        "title": "Open MCPflare Settings",
+        "category": "MCPflare"
       },
       {
-        "command": "mcpguard.refreshMCPs",
+        "command": "mcpflare.refreshMCPs",
         "title": "Refresh MCP List",
-        "category": "MCP Guard"
+        "category": "MCPflare"
       },
       {
-        "command": "mcpguard.importFromIDE",
+        "command": "mcpflare.importFromIDE",
         "title": "Import MCPs from IDE Config",
-        "category": "MCP Guard"
+        "category": "MCPflare"
       }
     ]
   },
@@ -63,7 +63,7 @@
     "build:server": "cd .. && npm run build",
     "build:extension": "esbuild src/extension/index.ts --bundle --outfile=dist/extension/index.js --external:vscode --format=cjs --platform=node",
     "build:webview": "esbuild src/webview/index.tsx --bundle --outfile=dist/webview/index.js --format=iife --loader:.tsx=tsx --loader:.ts=ts",
-    "copy:server": "node -e \"const fs=require('fs');const path=require('path');const src='../dist';const dest='./mcpguard-server';if(!fs.existsSync(dest))fs.mkdirSync(dest,{recursive:true});fs.cpSync(src,dest,{recursive:true});console.log('Copied mcpguard server to extension')\"",
+    "copy:server": "node -e \"const fs=require('fs');const path=require('path');const src='../dist';const dest='./mcpflare-server';if(!fs.existsSync(dest))fs.mkdirSync(dest,{recursive:true});fs.cpSync(src,dest,{recursive:true});console.log('Copied mcpflare server to extension')\"",
     "watch": "concurrently \"npm run watch:extension\" \"npm run watch:webview\"",
     "watch:extension": "esbuild src/extension/index.ts --bundle --outfile=dist/extension/index.js --external:vscode --format=cjs --platform=node --watch",
     "watch:webview": "esbuild src/webview/index.tsx --bundle --outfile=dist/webview/index.js --format=iife --loader:.tsx=tsx --loader:.ts=ts --watch",

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as path from 'path';
 import { addMockFile, getMockFileContent, resetMockFs } from '../setup';
-import type { MCPSecurityConfig, MCPGuardSettings } from '../../src/extension/types';
+import type { MCPSecurityConfig, MCPflareSettings } from '../../src/extension/types';
 import {
   toWorkerIsolationConfig,
   loadWorkerIsolationConfigs,
@@ -49,7 +49,7 @@ describe('config-exporter', () => {
   }
 
   // Helper to create test settings
-  function createTestSettings(mcpConfigs: MCPSecurityConfig[] = []): MCPGuardSettings {
+  function createTestSettings(mcpConfigs: MCPSecurityConfig[] = []): MCPflareSettings {
     return {
       enabled: true,
       defaults: {
@@ -156,7 +156,7 @@ describe('config-exporter', () => {
       expect(configs.size).toBe(0);
     });
 
-    it('should return empty map when MCP Guard is globally disabled', () => {
+    it('should return empty map when MCPflare is globally disabled', () => {
       const settingsPath = getSettingsPath();
       const settings = createTestSettings([createTestConfig()]);
       settings.enabled = false;

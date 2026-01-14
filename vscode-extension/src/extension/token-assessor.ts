@@ -25,7 +25,7 @@ import {
 
 /**
  * Validate URL-based MCP using MCP SDK's StreamableHTTPClientTransport
- * This is the same method used by MCPGuard server at runtime
+ * This is the same method used by MCPflare server at runtime
  * Returns the number of tools or -1 if validation fails
  */
 export async function validateWithSDKTransport(
@@ -48,7 +48,7 @@ export async function validateWithSDKTransport(
     transport = new StreamableHTTPClientTransport(parsedUrl, transportOptions)
 
     client = new Client(
-      { name: 'mcpguard-validator', version: '0.1.0' },
+      { name: 'mcpflare-validator', version: '0.1.0' },
       { capabilities: {} },
     )
 
@@ -110,7 +110,7 @@ function estimateTokens(chars: number): number {
 }
 
 /**
- * MCPGuard's own tools (approximate schema size)
+ * MCPflare's own tools (approximate schema size)
  * These tools are always loaded regardless of how many MCPs are guarded:
  * - connect
  * - call_mcp
@@ -123,9 +123,9 @@ function estimateTokens(chars: number): number {
  * - search_mcp_tools
  * - guard
  *
- * Estimated ~500 tokens for all MCPGuard tools combined
+ * Estimated ~500 tokens for all MCPflare tools combined
  */
-const MCPGUARD_BASELINE_TOKENS = 500
+const MCPFLARE_BASELINE_TOKENS = 500
 
 /**
  * Default estimate for MCPs that can't be assessed
@@ -284,7 +284,7 @@ async function assessURLBasedMCP(
       protocolVersion: '2024-11-05',
       capabilities: {},
       clientInfo: {
-        name: 'mcpguard-token-assessor',
+        name: 'mcpflare-token-assessor',
         version: '1.0.0',
       },
     },
@@ -393,7 +393,7 @@ async function assessURLBasedMCP(
           return {
             error: {
               type: 'oauth_required',
-              message: `This MCP server requires OAuth authentication, which MCPGuard cannot support.`,
+              message: `This MCP server requires OAuth authentication, which MCPflare cannot support.`,
               statusCode,
               statusText,
               errorAt: new Date().toISOString(),
@@ -538,7 +538,7 @@ async function assessURLBasedMCP(
           return {
             error: {
               type: 'oauth_required',
-              message: `This MCP server requires OAuth authentication, which MCPGuard cannot support.`,
+              message: `This MCP server requires OAuth authentication, which MCPflare cannot support.`,
               statusCode,
               statusText,
               errorAt: new Date().toISOString(),
@@ -633,15 +633,15 @@ async function assessURLBasedMCP(
     const schemaChars = JSON.stringify(tools).length
     const estimatedTokens = estimateTokens(schemaChars)
 
-    // Validate with SDK transport (same as MCPGuard server uses at runtime)
-    // This ensures the UI shows accurate information about what MCPGuard can actually use
+    // Validate with SDK transport (same as MCPflare server uses at runtime)
+    // This ensures the UI shows accurate information about what MCPflare can actually use
     console.log(
       `Token Assessor: ${server.name} - validating with SDK transport...`,
     )
     const sdkValidation = await validateWithSDKTransport(server.url!, server.headers)
 
     // If SDK validation failed or returned 0 tools when direct fetch got tools,
-    // this indicates MCPGuard server won't be able to use this MCP
+    // this indicates MCPflare server won't be able to use this MCP
     if (sdkValidation.toolCount === -1) {
       console.log(
         `Token Assessor: ${server.name} - SDK validation FAILED: ${sdkValidation.error}`,
@@ -649,7 +649,7 @@ async function assessURLBasedMCP(
       return {
         error: {
           type: 'sdk_mismatch',
-          message: `MCPGuard cannot connect to this MCP. Direct fetch succeeded with ${tools.length} tools, but SDK transport failed. This means MCPGuard server won't be able to guard this MCP.`,
+          message: `MCPflare cannot connect to this MCP. Direct fetch succeeded with ${tools.length} tools, but SDK transport failed. This means MCPflare server won't be able to guard this MCP.`,
           errorAt: new Date().toISOString(),
           sdkValidation: {
             directFetchTools: tools.length,
@@ -672,7 +672,7 @@ async function assessURLBasedMCP(
       return {
         error: {
           type: 'sdk_mismatch',
-          message: `MCPGuard cannot use this MCP. Direct fetch returned ${tools.length} tools, but SDK transport returned 0. This indicates an authentication or protocol issue.`,
+          message: `MCPflare cannot use this MCP. Direct fetch returned ${tools.length} tools, but SDK transport returned 0. This indicates an authentication or protocol issue.`,
           errorAt: new Date().toISOString(),
           sdkValidation: {
             directFetchTools: tools.length,
@@ -849,7 +849,7 @@ async function assessCommandBasedMCP(
           protocolVersion: '2024-11-05',
           capabilities: {},
           clientInfo: {
-            name: 'mcpguard-token-assessor',
+            name: 'mcpflare-token-assessor',
             version: '1.0.0',
           },
         },
@@ -1026,15 +1026,15 @@ export function calculateTokenSavings(
     }
   }
 
-  // Token savings = what we'd use without MCPGuard - what MCPGuard itself uses
+  // Token savings = what we'd use without MCPflare - what MCPflare itself uses
   const tokensSaved = Math.max(
     0,
-    totalTokensWithoutGuard - MCPGUARD_BASELINE_TOKENS,
+    totalTokensWithoutGuard - MCPFLARE_BASELINE_TOKENS,
   )
 
   return {
     totalTokensWithoutGuard,
-    mcpGuardTokens: MCPGUARD_BASELINE_TOKENS,
+    mcpflareTokens: MCPFLARE_BASELINE_TOKENS,
     tokensSaved,
     assessedMCPs,
     guardedMCPs,
@@ -1043,10 +1043,10 @@ export function calculateTokenSavings(
 }
 
 /**
- * Get MCPGuard's baseline token usage
+ * Get MCPflare's baseline token usage
  */
-export function getMCPGuardBaselineTokens(): number {
-  return MCPGUARD_BASELINE_TOKENS
+export function getMCPflareBaselineTokens(): number {
+  return MCPFLARE_BASELINE_TOKENS
 }
 
 /**
@@ -1230,7 +1230,7 @@ export async function testMCPConnection(
         protocolVersion: '2024-11-05',
         capabilities: {},
         clientInfo: {
-          name: 'mcpguard-connection-test',
+          name: 'mcpflare-connection-test',
           version: '1.0.0',
         },
       },
@@ -1317,7 +1317,7 @@ export async function testMCPConnection(
             steps,
             error: {
               type: 'oauth_required',
-              message: `This MCP server requires OAuth authentication, which MCPGuard cannot support.`,
+              message: `This MCP server requires OAuth authentication, which MCPflare cannot support.`,
               statusCode: initResponse.status,
               statusText: initResponse.statusText,
               errorAt: new Date().toISOString(),

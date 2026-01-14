@@ -8,8 +8,8 @@ import * as os from 'os'
 import * as path from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type {
-  MCPGuardSettings,
-  MCPGuardSettingsStored,
+  MCPflareSettings,
+  MCPflareSettingsStored,
   MCPSecurityConfig,
   MCPSecurityConfigStored,
 } from '../../src/extension/types'
@@ -44,9 +44,9 @@ function hydrateConfig(
  */
 function saveSettingsToBackend(
   settingsPath: string,
-  settings: MCPGuardSettings,
+  settings: MCPflareSettings,
 ): void {
-  const storedSettings: MCPGuardSettingsStored = {
+  const storedSettings: MCPflareSettingsStored = {
     enabled: settings.enabled,
     defaults: settings.defaults,
     mcpConfigs: settings.mcpConfigs.map(dehydrateConfig),
@@ -64,7 +64,7 @@ function saveSettingsToBackend(
 function loadSettingsFromBackend(
   settingsPath: string,
   ideConfig: Record<string, boolean> = {},
-): MCPGuardSettings {
+): MCPflareSettings {
   if (!fs.existsSync(settingsPath)) {
     return {
       ...DEFAULT_SETTINGS,
@@ -73,7 +73,7 @@ function loadSettingsFromBackend(
   }
 
   const content = fs.readFileSync(settingsPath, 'utf-8')
-  const storedSettings = JSON.parse(content) as MCPGuardSettingsStored
+  const storedSettings = JSON.parse(content) as MCPflareSettingsStored
 
   // Hydrate configs with isGuarded from IDE config
   const hydratedConfigs = storedSettings.mcpConfigs.map((stored) =>
@@ -92,7 +92,7 @@ describe('Toggle Persistence Integration', () => {
   let ideConfig: Record<string, boolean>
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcpguard-integration-'))
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcpflare-integration-'))
     settingsPath = path.join(tempDir, 'settings.json')
     ideConfig = {}
   })
@@ -105,7 +105,7 @@ describe('Toggle Persistence Integration', () => {
 
   it('should persist network.enabled toggle through full save/load cycle', () => {
     // Step 1: Initial state - no config exists
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [],
     }
@@ -211,7 +211,7 @@ describe('Toggle Persistence Integration', () => {
       lastModified: new Date().toISOString(),
     }
 
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [initialConfig],
     }

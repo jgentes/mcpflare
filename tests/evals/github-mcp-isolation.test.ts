@@ -25,7 +25,7 @@ vi.mock('../../src/utils/logger.js', () => ({
   },
 }))
 
-describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
+describe('Eval: GitHub MCP Isolation via MCPflare', () => {
   let handler: MCPHandler
   let configManager: ConfigManager
   const testMCPName = `${TEST_MCP_PREFIX}github-eval-test`
@@ -51,21 +51,21 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
   })
 
   /**
-   * Eval test to verify Wrangler isolation is working correctly with GitHub MCP via MCPGuard.
+   * Eval test to verify Wrangler isolation is working correctly with GitHub MCP via MCPflare.
    *
-   * This test uses MCPGuard's interface (not directly loading the MCP) to:
-   * 1. Use MCPGuard's call_mcp tool with mcp_name to auto-connect GitHub MCP from config
+   * This test uses MCPflare's interface (not directly loading the MCP) to:
+   * 1. Use MCPflare's call_mcp tool with mcp_name to auto-connect GitHub MCP from config
    * 2. Execute code that uses the GitHub MCP tool to retrieve repository information
-   * 3. Verifies that MCP tools work correctly through MCPGuard's isolation layer
+   * 3. Verifies that MCP tools work correctly through MCPflare's isolation layer
    * 4. Verifies that direct fetch() calls are blocked (isolation working)
    *
    * This ensures that:
-   * - MCPGuard can properly discover and load MCPs from config
+   * - MCPflare can properly discover and load MCPs from config
    * - MCP tools can make network requests through the MCP server (allowed)
    * - Direct network access from the Worker isolate is blocked (security)
    * - The isolation layer properly routes MCP tool calls while preventing direct access
    */
-  it('should successfully retrieve repository information via GitHub MCP through MCPGuard while maintaining isolation', async () => {
+  it('should successfully retrieve repository information via GitHub MCP through MCPflare while maintaining isolation', async () => {
     // Skip test in CI environments - this eval test requires local IDE config setup
     if (process.env.CI || process.env.GITHUB_ACTIONS) {
       console.warn('Skipping eval test in CI environment - requires local IDE config')
@@ -81,7 +81,7 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
       return
     }
 
-    // First, save the GitHub MCP config so MCPGuard can discover it
+    // First, save the GitHub MCP config so MCPflare can discover it
     // This simulates having the MCP configured in the IDE config
     const githubConfig = {
       command: 'npx',
@@ -90,18 +90,18 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
 
     configManager.saveConfig(testMCPName, githubConfig)
     
-    // Disable the MCP to guard it (move it to _mcpguard_disabled)
-    // This ensures it can only be accessed through MCPGuard
+    // Disable the MCP to guard it (move it to _mcpflare_disabled)
+    // This ensures it can only be accessed through MCPflare
     const disabled = configManager.disableMCP(testMCPName)
     if (!disabled) {
       throw new Error(`Failed to disable MCP ${testMCPName}`)
     }
 
-    // Use MCPGuard's call_mcp tool with mcp_name to auto-connect the GitHub MCP
-    // This tests MCPGuard's transparent proxy and auto-connection functionality
+    // Use MCPflare's call_mcp tool with mcp_name to auto-connect the GitHub MCP
+    // This tests MCPflare's transparent proxy and auto-connection functionality
     const code = `
       // Use GitHub MCP to search for the modelcontextprotocol repository
-      // This code runs in an isolated Worker, and MCP tool calls go through MCPGuard
+      // This code runs in an isolated Worker, and MCP tool calls go through MCPflare
       try {
         // Try to use the GitHub MCP to search for repositories
         let repoInfo;
@@ -173,7 +173,7 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
           throw new Error('SECURITY BREACH: Direct fetch() should be blocked but was not');
         }
         
-        console.log('SUCCESS: MCP tool worked through MCPGuard and direct fetch was blocked');
+        console.log('SUCCESS: MCP tool worked through MCPflare and direct fetch was blocked');
         console.log(JSON.stringify({ 
           success: true, 
           mcpToolWorked: true, 
@@ -187,7 +187,7 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
       }
     `
 
-    // Call MCPGuard's call_mcp tool with mcp_name to auto-connect the GitHub MCP
+    // Call MCPflare's call_mcp tool with mcp_name to auto-connect the GitHub MCP
     // We access the private method for testing purposes
     const handlerAny = handler as any
     const result = await handlerAny.handleExecuteCode({
@@ -208,16 +208,16 @@ describe('Eval: GitHub MCP Isolation via MCPGuard', () => {
     expect(parsedResult.success).toBe(true)
     expect(parsedResult.output).toBeDefined()
 
-    // Verify that MCP tool was used successfully through MCPGuard
+    // Verify that MCP tool was used successfully through MCPflare
     expect(parsedResult.output).toContain('SUCCESS')
-    expect(parsedResult.output).toContain('MCP tool worked through MCPGuard')
+    expect(parsedResult.output).toContain('MCP tool worked through MCPflare')
     expect(parsedResult.output).toContain('direct fetch was blocked')
 
     // Verify that direct fetch() was blocked (isolation working)
     expect(parsedResult.output).toContain('Direct fetch() correctly blocked')
     expect(parsedResult.output).not.toContain('SECURITY BREACH')
 
-    // Verify repository data was retrieved (indicates MCP tool worked through MCPGuard)
+    // Verify repository data was retrieved (indicates MCP tool worked through MCPflare)
     expect(parsedResult.output).toMatch(/Repository (search result|info):/)
 
     // Verify no errors occurred

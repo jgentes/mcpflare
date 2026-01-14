@@ -44,8 +44,8 @@ import {
   isMCPDisabled,
   disableMCPInIDE,
   enableMCPInIDE,
-  ensureMCPGuardInConfig,
-  removeMCPGuardFromConfig,
+  ensureMCPflareInConfig,
+  removeMCPflareFromConfig,
   getMCPStatus,
   invalidateMCPCache,
   addMCPToIDE,
@@ -114,14 +114,14 @@ describe('config-loader', () => {
       });
     });
 
-    it('should load disabled MCPs from Cursor _mcpguard_disabled section', () => {
+    it('should load disabled MCPs from Cursor _mcpflare_disabled section', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {
           'active-mcp': { command: 'node', args: ['active.js'] },
         },
         {
-          _mcpguard_disabled: {
+          _mcpflare_disabled: {
             'disabled-mcp': { command: 'node', args: ['disabled.js'] },
           },
         }
@@ -157,10 +157,10 @@ describe('config-loader', () => {
       });
     });
 
-    it('should skip mcpguard entry in configs', () => {
+    it('should skip mcpflare entry in configs', () => {
       const claudePath = getTestConfigPath('claude');
       addMockFile(claudePath, createSampleMCPConfig({
-        mcpguard: { command: 'node', args: ['mcpguard.js'] },
+        mcpflare: { command: 'node', args: ['mcpflare.js'] },
         'real-mcp': { command: 'node', args: ['real.js'] },
       }));
 
@@ -224,7 +224,7 @@ describe('config-loader', () => {
   describe('getSettingsPath', () => {
     it('should return path in user home directory', () => {
       const settingsPath = getSettingsPath();
-      expect(settingsPath).toContain('.mcpguard');
+      expect(settingsPath).toContain('.mcpflare');
       expect(settingsPath).toContain('settings.json');
     });
 
@@ -319,7 +319,7 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'test-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'test-mcp': { command: 'node' } } }
       ));
 
       expect(isMCPDisabled('test-mcp')).toBe(true);
@@ -346,7 +346,7 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'test-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'test-mcp': { command: 'node' } } }
       ));
 
       const result = disableMCPInIDE('test-mcp');
@@ -401,7 +401,7 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'test-mcp': { command: 'node', args: ['test.js'] } } }
+        { _mcpflare_disabled: { 'test-mcp': { command: 'node', args: ['test.js'] } } }
       ));
 
       const result = enableMCPInIDE('test-mcp');
@@ -413,11 +413,11 @@ describe('config-loader', () => {
       expect(isMCPDisabled('test-mcp')).toBe(false);
     });
 
-    it('should clean up empty _mcpguard_disabled section', () => {
+    it('should clean up empty _mcpflare_disabled section', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'test-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'test-mcp': { command: 'node' } } }
       ));
 
       enableMCPInIDE('test-mcp');
@@ -428,41 +428,41 @@ describe('config-loader', () => {
     });
   });
 
-  describe('ensureMCPGuardInConfig', () => {
-    it('should add mcpguard to existing config', () => {
+  describe('ensureMCPflareInConfig', () => {
+    it('should add mcpflare to existing config', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig({
         'other-mcp': { command: 'node' },
       }));
 
-      const result = ensureMCPGuardInConfig('/fake/extension/path');
+      const result = ensureMCPflareInConfig('/fake/extension/path');
       
       expect(result.success).toBe(true);
       expect(result.added).toBe(true);
-      expect(getMCPStatus('mcpguard')).toBe('active');
+      expect(getMCPStatus('mcpflare')).toBe('active');
     });
 
-    it('should return success without adding if mcpguard already exists', () => {
+    it('should return success without adding if mcpflare already exists', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig({
-        mcpguard: { command: 'node', args: ['existing.js'] },
+        mcpflare: { command: 'node', args: ['existing.js'] },
       }));
 
-      const result = ensureMCPGuardInConfig('/fake/extension/path');
+      const result = ensureMCPflareInConfig('/fake/extension/path');
       
       expect(result.success).toBe(true);
       expect(result.added).toBe(false);
       expect(result.message).toContain('already in config');
     });
 
-    it('should restore mcpguard from disabled section', () => {
+    it('should restore mcpflare from disabled section', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { mcpguard: { command: 'node' } } }
+        { _mcpflare_disabled: { mcpflare: { command: 'node' } } }
       ));
 
-      const result = ensureMCPGuardInConfig('/fake/extension/path');
+      const result = ensureMCPflareInConfig('/fake/extension/path');
       
       expect(result.success).toBe(true);
       expect(result.added).toBe(true);
@@ -470,36 +470,36 @@ describe('config-loader', () => {
     });
   });
 
-  describe('removeMCPGuardFromConfig', () => {
+  describe('removeMCPflareFromConfig', () => {
     it('should return failure when no config exists', () => {
-      const result = removeMCPGuardFromConfig();
+      const result = removeMCPflareFromConfig();
       expect(result.success).toBe(false);
       expect(result.message).toContain('No IDE config file found');
     });
 
-    it('should return success if mcpguard not in config', () => {
+    it('should return success if mcpflare not in config', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig({
         'other-mcp': { command: 'node' },
       }));
 
-      const result = removeMCPGuardFromConfig();
+      const result = removeMCPflareFromConfig();
       expect(result.success).toBe(true);
       expect(result.message).toContain('not in config');
     });
 
-    it('should successfully remove mcpguard from config', () => {
+    it('should successfully remove mcpflare from config', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig({
-        mcpguard: { command: 'node', args: ['guard.js'] },
+        mcpflare: { command: 'node', args: ['guard.js'] },
         'other-mcp': { command: 'node' },
       }));
 
-      const result = removeMCPGuardFromConfig();
+      const result = removeMCPflareFromConfig();
       
       expect(result.success).toBe(true);
       expect(result.message).toContain('Removed');
-      expect(getMCPStatus('mcpguard')).toBe('not_found');
+      expect(getMCPStatus('mcpflare')).toBe('not_found');
     });
   });
 
@@ -517,11 +517,11 @@ describe('config-loader', () => {
       expect(getMCPStatus('test-mcp')).toBe('active');
     });
 
-    it('should return disabled for MCP in _mcpguard_disabled', () => {
+    it('should return disabled for MCP in _mcpflare_disabled', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'test-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'test-mcp': { command: 'node' } } }
       ));
 
       expect(getMCPStatus('test-mcp')).toBe('disabled');
@@ -690,7 +690,7 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'guarded-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'guarded-mcp': { command: 'node' } } }
       ));
 
       const result = addMCPToIDE('guarded-mcp', { command: 'python' });
@@ -748,7 +748,7 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         { 'active-mcp': { command: 'node' } },
-        { _mcpguard_disabled: { 'disabled-mcp': { command: 'node' } } }
+        { _mcpflare_disabled: { 'disabled-mcp': { command: 'node' } } }
       ));
 
       const result = deleteMCPFromIDE('disabled-mcp');
@@ -772,19 +772,19 @@ describe('config-loader', () => {
       expect(result.message).toContain('not found');
     });
 
-    it('should clean up empty _mcpguard_disabled section after delete', () => {
+    it('should clean up empty _mcpflare_disabled section after delete', () => {
       const cursorPath = getTestConfigPath('cursor');
       addMockFile(cursorPath, createSampleMCPConfig(
         {},
-        { _mcpguard_disabled: { 'only-disabled': { command: 'node' } } }
+        { _mcpflare_disabled: { 'only-disabled': { command: 'node' } } }
       ));
 
       deleteMCPFromIDE('only-disabled');
       
-      // Verify the _mcpguard_disabled section was cleaned up
+      // Verify the _mcpflare_disabled section was cleaned up
       const savedContent = getMockFileContent(cursorPath);
       const saved = JSON.parse(savedContent!);
-      expect(saved._mcpguard_disabled).toBeUndefined();
+      expect(saved._mcpflare_disabled).toBeUndefined();
     });
 
     it('should invalidate cache when deleting MCP', () => {
@@ -828,14 +828,14 @@ describe('config-loader', () => {
       expect(claudePath).not.toContain('Application Support');
     });
 
-    it('should load MCPs from Claude Code config with _mcpguard_disabled section', () => {
+    it('should load MCPs from Claude Code config with _mcpflare_disabled section', () => {
       const claudePath = getTestConfigPath('claude');
       addMockFile(claudePath, createSampleMCPConfig(
         {
           'active-claude-mcp': { command: 'node', args: ['active.js'] },
         },
         {
-          _mcpguard_disabled: {
+          _mcpflare_disabled: {
             'disabled-claude-mcp': { command: 'node', args: ['disabled.js'] },
           },
         }
@@ -1059,7 +1059,7 @@ describe('config-loader', () => {
       // Verify it was disabled in cursor config
       const cursorConfig = JSON.parse(getMockFileContent(cursorPath)!);
       expect(cursorConfig.mcpServers['cursor-mcp']).toBeUndefined();
-      expect(cursorConfig._mcpguard_disabled?.['cursor-mcp']).toBeDefined();
+      expect(cursorConfig._mcpflare_disabled?.['cursor-mcp']).toBeDefined();
       
       // Verify claude config wasn't touched
       const claudeConfig = JSON.parse(getMockFileContent(claudePath)!);
@@ -1071,12 +1071,12 @@ describe('config-loader', () => {
       const cursorPath = getTestConfigPath('cursor');
       
       addMockFile(claudePath, createSampleMCPConfig({}, {
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           'claude-mcp': { command: 'node', args: ['claude.js'] },
         },
       }));
       addMockFile(cursorPath, createSampleMCPConfig({}, {
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           'cursor-mcp': { command: 'node', args: ['cursor.js'] },
         },
       }));
@@ -1088,11 +1088,11 @@ describe('config-loader', () => {
       // Verify it was enabled in cursor config
       const cursorConfig = JSON.parse(getMockFileContent(cursorPath)!);
       expect(cursorConfig.mcpServers['cursor-mcp']).toBeDefined();
-      expect(cursorConfig._mcpguard_disabled?.['cursor-mcp']).toBeUndefined();
+      expect(cursorConfig._mcpflare_disabled?.['cursor-mcp']).toBeUndefined();
       
       // Verify claude config wasn't touched
       const claudeConfig = JSON.parse(getMockFileContent(claudePath)!);
-      expect(claudeConfig._mcpguard_disabled?.['claude-mcp']).toBeDefined();
+      expect(claudeConfig._mcpflare_disabled?.['claude-mcp']).toBeDefined();
     });
 
     it('should delete MCP from correct IDE config when source is specified', () => {
@@ -1137,7 +1137,7 @@ describe('config-loader', () => {
       // Verify it was disabled in Claude config (primary)
       const claudeConfig = JSON.parse(getMockFileContent(claudePath)!);
       expect(claudeConfig.mcpServers['test-mcp']).toBeUndefined();
-      expect(claudeConfig._mcpguard_disabled?.['test-mcp']).toBeDefined();
+      expect(claudeConfig._mcpflare_disabled?.['test-mcp']).toBeDefined();
     });
   });
 });

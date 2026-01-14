@@ -7,7 +7,7 @@ import {
 	calculateTokenSavings,
 	formatTokens,
 	calculatePercentage,
-	MCPGUARD_BASELINE_TOKENS,
+	MCPFLARE_BASELINE_TOKENS,
 	DEFAULT_UNASSESSED_TOKENS,
 	type MCPTokenMetrics,
 } from '../../src/utils/token-calculator'
@@ -72,8 +72,8 @@ describe('Token Calculator', () => {
 			expect(summary.guardedMCPs).toBe(1)
 			expect(summary.assessedMCPs).toBe(1)
 			expect(summary.totalTokensWithoutGuard).toBe(2000)
-			expect(summary.mcpGuardTokens).toBe(MCPGUARD_BASELINE_TOKENS)
-			expect(summary.tokensSaved).toBe(2000 - MCPGUARD_BASELINE_TOKENS)
+			expect(summary.mcpflareTokens).toBe(MCPFLARE_BASELINE_TOKENS)
+			expect(summary.tokensSaved).toBe(2000 - MCPFLARE_BASELINE_TOKENS)
 			expect(summary.hasEstimates).toBe(false)
 		})
 
@@ -96,7 +96,7 @@ describe('Token Calculator', () => {
 			expect(summary.guardedMCPs).toBe(2)
 			expect(summary.assessedMCPs).toBe(2)
 			expect(summary.totalTokensWithoutGuard).toBe(3800)
-			expect(summary.tokensSaved).toBe(3800 - MCPGUARD_BASELINE_TOKENS)
+			expect(summary.tokensSaved).toBe(3800 - MCPFLARE_BASELINE_TOKENS)
 			expect(summary.hasEstimates).toBe(false)
 		})
 
@@ -114,7 +114,7 @@ describe('Token Calculator', () => {
 			expect(summary.guardedMCPs).toBe(1)
 			expect(summary.assessedMCPs).toBe(0)
 			expect(summary.totalTokensWithoutGuard).toBe(DEFAULT_UNASSESSED_TOKENS)
-			expect(summary.tokensSaved).toBe(DEFAULT_UNASSESSED_TOKENS - MCPGUARD_BASELINE_TOKENS)
+			expect(summary.tokensSaved).toBe(DEFAULT_UNASSESSED_TOKENS - MCPFLARE_BASELINE_TOKENS)
 			expect(summary.hasEstimates).toBe(true)
 		})
 
@@ -179,7 +179,7 @@ describe('Token Calculator', () => {
 		})
 
 		it('should never return negative savings', () => {
-			// Edge case: if somehow MCPGuard tokens > guarded tokens
+			// Edge case: if somehow MCPflare tokens > guarded tokens
 			const mcps = [
 				{
 					name: 'tiny-mcp',
@@ -190,15 +190,15 @@ describe('Token Calculator', () => {
 
 			const summary = calculateTokenSavings(mcps)
 
-			// MCPGuard baseline is 500, but we only saved 50 tokens
+			// MCPflare baseline is 500, but we only saved 50 tokens
 			// Should not show negative savings
 			expect(summary.tokensSaved).toBe(0) // Math.max(0, 50 - 500) = 0
 		})
 	})
 
 	describe('Constants', () => {
-		it('should have reasonable MCPGUARD_BASELINE_TOKENS', () => {
-			expect(MCPGUARD_BASELINE_TOKENS).toBe(500)
+		it('should have reasonable MCPFLARE_BASELINE_TOKENS', () => {
+			expect(MCPFLARE_BASELINE_TOKENS).toBe(500)
 		})
 
 		it('should have reasonable DEFAULT_UNASSESSED_TOKENS', () => {

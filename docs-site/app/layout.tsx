@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://mcpguard.dev'),
+  metadataBase: new URL('https://mcpflare.dev'),
   title: {
-    template: '%s | MCP Guard',
-    default: 'MCP Guard - Zero-Trust MCP Security',
+    template: '%s | MCPflare',
+    default: 'MCPflare - Zero-Trust MCP Security',
   },
   description:
     'Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     icon: '/icon.png',
   },
   openGraph: {
-    title: 'MCP Guard',
+    title: 'MCPflare',
     description:
       'Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.',
     images: ['/icon.png'],

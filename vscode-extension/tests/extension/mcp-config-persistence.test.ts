@@ -8,7 +8,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
-  MCPGuardSettings,
+  MCPflareSettings,
   MCPSecurityConfig,
 } from '../../src/extension/types'
 import { DEFAULT_SETTINGS } from '../../src/extension/types'
@@ -19,7 +19,7 @@ describe('MCP Config Persistence', () => {
 
   beforeEach(() => {
     // Create a temporary directory for test settings
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcpguard-test-'))
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcpflare-test-'))
     settingsPath = path.join(tempDir, 'settings.json')
   })
 
@@ -32,7 +32,7 @@ describe('MCP Config Persistence', () => {
 
   it('should persist network.enabled toggle changes', () => {
     // Initial settings with network disabled
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [
         {
@@ -94,7 +94,7 @@ describe('MCP Config Persistence', () => {
 
   it('should persist fileSystem.enabled toggle changes', () => {
     // Initial settings with filesystem disabled
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [
         {
@@ -156,7 +156,7 @@ describe('MCP Config Persistence', () => {
 
   it('should persist network.allowLocalhost toggle changes', () => {
     // Initial settings with localhost disabled
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [
         {
@@ -218,7 +218,7 @@ describe('MCP Config Persistence', () => {
 
   it('should handle rapid toggle changes (toggle on then off)', () => {
     // Initial settings
-    const initialSettings: MCPGuardSettings = {
+    const initialSettings: MCPflareSettings = {
       ...DEFAULT_SETTINGS,
       mcpConfigs: [
         {

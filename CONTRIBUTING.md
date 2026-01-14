@@ -1,6 +1,6 @@
-# Contributing to MCP Guard
+# Contributing to MCPflare
 
-Thank you for your interest in contributing to MCP Guard! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to MCPflare! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -14,8 +14,8 @@ Thank you for your interest in contributing to MCP Guard! This document provides
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mcpguard.git
-   cd mcpguard
+   git clone https://github.com/YOUR_USERNAME/mcpflare.git
+   cd mcpflare
    ```
 
 2. **Install dependencies**
@@ -183,7 +183,7 @@ Improvements to documentation are always welcome:
 ## Project Structure
 
 ```
-mcpguard/
+mcpflare/
 ├── src/
 │   ├── cli/          # Interactive CLI
 │   ├── server/       # MCP server implementation

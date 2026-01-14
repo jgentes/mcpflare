@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2024-12-13
 
 ### Added
-- Initial release of MCP Guard
+- Initial release of MCPflare
 - Zero-trust execution environment using Cloudflare Workers isolates
 - Code mode execution for massive token savings (up to 98% reduction)
 - Interactive CLI for testing MCP servers

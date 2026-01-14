@@ -1,13 +1,13 @@
 /**
  * Configuration Exporter
  * 
- * Exports MCP Guard settings in a format that can be used by the MCP Guard runtime
+ * Exports MCPflare settings in a format that can be used by the MCPflare runtime
  * when starting Worker isolates with Wrangler.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { MCPGuardSettings, MCPSecurityConfig } from './types';
+import type { MCPflareSettings, MCPSecurityConfig } from './types';
 import { getSettingsPath } from './config-loader';
 
 /**
@@ -17,7 +17,7 @@ export interface WorkerIsolationConfig {
   /** MCP name */
   mcpName: string;
   
-  /** Whether MCP Guard is enabled for this MCP */
+  /** Whether MCPflare is enabled for this MCP */
   isGuarded: boolean;
   
   /** Network outbound configuration */
@@ -79,7 +79,7 @@ export function toWorkerIsolationConfig(config: MCPSecurityConfig): WorkerIsolat
 }
 
 /**
- * Load MCP Guard settings and convert to worker isolation configs
+ * Load MCPflare settings and convert to worker isolation configs
  */
 export function loadWorkerIsolationConfigs(): Map<string, WorkerIsolationConfig> {
   const configs = new Map<string, WorkerIsolationConfig>();
@@ -91,9 +91,9 @@ export function loadWorkerIsolationConfigs(): Map<string, WorkerIsolationConfig>
   
   try {
     const content = fs.readFileSync(settingsPath, 'utf-8');
-    const settings = JSON.parse(content) as MCPGuardSettings;
+    const settings = JSON.parse(content) as MCPflareSettings;
     
-    // Only process if MCP Guard is globally enabled
+    // Only process if MCPflare is globally enabled
     if (!settings.enabled) {
       return configs;
     }
@@ -104,7 +104,7 @@ export function loadWorkerIsolationConfigs(): Map<string, WorkerIsolationConfig>
       }
     }
   } catch (error) {
-    console.error('Failed to load MCP Guard settings:', error);
+    console.error('Failed to load MCPflare settings:', error);
   }
   
   return configs;
@@ -149,7 +149,7 @@ export function generateOutboundRules(config: WorkerIsolationConfig): string {
 }
 
 /**
- * Export settings to a JSON file for the MCP Guard runtime to consume
+ * Export settings to a JSON file for the MCPflare runtime to consume
  */
 export function exportSettingsForRuntime(outputPath?: string): void {
   const configs = loadWorkerIsolationConfigs();

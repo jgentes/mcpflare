@@ -76,7 +76,7 @@ describe('token-assessor', () => {
       const summary = calculateTokenSavings(servers, configs, tokenCache)
 
       expect(summary.totalTokensWithoutGuard).toBe(2500) // 1000 + 1500
-      expect(summary.mcpGuardTokens).toBe(500)
+      expect(summary.mcpflareTokens).toBe(500)
       expect(summary.tokensSaved).toBe(2000) // 2500 - 500
       expect(summary.assessedMCPs).toBe(2)
       expect(summary.guardedMCPs).toBe(2)
@@ -266,7 +266,7 @@ describe('token-assessor', () => {
       const tokenCache: TokenMetricsCache = {
         'mcp-1': {
           mcpName: 'mcp-1',
-          estimatedTokens: 100, // Less than MCPGuard baseline
+          estimatedTokens: 100, // Less than MCPflare baseline
           toolCount: 1,
           assessedAt: new Date().toISOString(),
         },
@@ -602,7 +602,7 @@ describe('token-assessor', () => {
       // Should be detected as OAuth required
       expect(result.error?.type).toBe('oauth_required')
       
-      // The message should indicate MCPGuard cannot support it
+      // The message should indicate MCPflare cannot support it
       expect(result.error?.message).toContain('OAuth')
       expect(result.error?.message).toContain('cannot support')
       

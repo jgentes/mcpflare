@@ -212,11 +212,11 @@ describe('ConfigManager', () => {
       expect(manager.getSavedConfig(configName)).toBeNull()
     })
 
-    it('should delete a disabled config from _mcpguard_disabled', () => {
+    it('should delete a disabled config from _mcpflare_disabled', () => {
       manager = new ConfigManager()
       const initialConfig = {
         mcpServers: {},
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-tool`]: { command: 'npx', args: ['disabled'] },
         },
       }
@@ -470,9 +470,9 @@ describe('ConfigManager', () => {
       const config = {
         mcpServers: {
           [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
-          mcpguard: { command: 'npx', args: ['mcpguard'] },
+          mcpflare: { command: 'npx', args: ['mcpflare'] },
         },
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['disabled'] },
         },
       }
@@ -484,7 +484,7 @@ describe('ConfigManager', () => {
       expect(mcps[`${TEST_MCP_PREFIX}active-mcp`].status).toBe('active')
       expect(mcps[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
       expect(mcps[`${TEST_MCP_PREFIX}disabled-mcp`].status).toBe('disabled')
-      expect(mcps['mcpguard']).toBeUndefined() // Should exclude mcpguard
+      expect(mcps['mcpflare']).toBeUndefined() // Should exclude mcpflare
     })
   })
 
@@ -496,14 +496,14 @@ describe('ConfigManager', () => {
       expect(typeof configs === 'object').toBe(true)
     })
 
-    it('should return all MCPs except mcpguard', () => {
+    it('should return all MCPs except mcpflare', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
           [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
-          mcpguard: { command: 'npx', args: ['mcpguard'] },
+          mcpflare: { command: 'npx', args: ['mcpflare'] },
         },
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['disabled'] },
         },
       }
@@ -513,39 +513,39 @@ describe('ConfigManager', () => {
       const configs = manager.getGuardedMCPConfigs()
       expect(configs[`${TEST_MCP_PREFIX}mcp-1`]).toBeDefined()
       expect(configs[`${TEST_MCP_PREFIX}mcp-2`]).toBeDefined()
-      expect(configs['mcpguard']).toBeUndefined()
+      expect(configs['mcpflare']).toBeUndefined()
     })
   })
 
-  describe('disableAllExceptMCPGuard', () => {
+  describe('disableAllExceptMCPflare', () => {
     it('should return result when no config explicitly loaded', () => {
       manager = new ConfigManager()
       // ConfigManager may auto-detect configs, so result might not be empty
-      const result = manager.disableAllExceptMCPGuard()
+      const result = manager.disableAllExceptMCPflare()
       expect(Array.isArray(result.disabled)).toBe(true)
       expect(Array.isArray(result.failed)).toBe(true)
       expect(Array.isArray(result.alreadyDisabled)).toBe(true)
-      expect(typeof result.mcpguardRestored === 'boolean').toBe(true)
+      expect(typeof result.mcpflareRestored === 'boolean').toBe(true)
     })
 
-    it('should disable all MCPs except mcpguard', () => {
+    it('should disable all MCPs except mcpflare', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
           [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
           [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['test'] },
-          mcpguard: { command: 'npx', args: ['mcpguard'] },
+          mcpflare: { command: 'npx', args: ['mcpflare'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
       manager.importConfigs(configPath)
 
-      const result = manager.disableAllExceptMCPGuard()
+      const result = manager.disableAllExceptMCPflare()
       expect(result.disabled.length).toBe(2)
       expect(result.disabled).toContain(`${TEST_MCP_PREFIX}mcp-1`)
       expect(result.disabled).toContain(`${TEST_MCP_PREFIX}mcp-2`)
-      expect(result.disabled).not.toContain('mcpguard')
-      expect(result.mcpguardRestored).toBe(false)
+      expect(result.disabled).not.toContain('mcpflare')
+      expect(result.mcpflareRestored).toBe(false)
 
       // Verify MCPs are disabled
       const disabled = manager.getDisabledMCPs()
@@ -553,22 +553,22 @@ describe('ConfigManager', () => {
       expect(disabled).toContain(`${TEST_MCP_PREFIX}mcp-2`)
     })
 
-    it('should restore mcpguard if it is disabled', () => {
+    it('should restore mcpflare if it is disabled', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {
           [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
         },
-        _mcpguard_disabled: {
-          mcpguard: { command: 'npx', args: ['mcpguard'] },
+        _mcpflare_disabled: {
+          mcpflare: { command: 'npx', args: ['mcpflare'] },
         },
       }
       writeFileSync(configPath, JSON.stringify(config, null, 2))
       manager.importConfigs(configPath)
 
-      const result = manager.disableAllExceptMCPGuard()
-      expect(result.mcpguardRestored).toBe(true)
-      expect(manager.isMCPDisabled('mcpguard')).toBe(false)
+      const result = manager.disableAllExceptMCPflare()
+      expect(result.mcpflareRestored).toBe(true)
+      expect(manager.isMCPDisabled('mcpflare')).toBe(false)
     })
   })
 
@@ -584,7 +584,7 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {},
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}mcp-1`]: { command: 'node', args: ['server.js'] },
           [`${TEST_MCP_PREFIX}mcp-2`]: { command: 'npx', args: ['test'] },
         },
@@ -617,7 +617,7 @@ describe('ConfigManager', () => {
         mcpServers: {
           [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
         },
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-1`]: { command: 'npx', args: ['test1'] },
           [`${TEST_MCP_PREFIX}disabled-2`]: { command: 'npx', args: ['test2'] },
         },
@@ -642,7 +642,7 @@ describe('ConfigManager', () => {
       manager = new ConfigManager()
       const config = {
         mcpServers: {},
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['test'] },
         },
       }
@@ -668,7 +668,7 @@ describe('ConfigManager', () => {
         mcpServers: {
           [`${TEST_MCP_PREFIX}active-mcp`]: { command: 'node', args: ['server.js'] },
         },
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-mcp`]: { command: 'npx', args: ['test'] },
         },
       }
@@ -678,7 +678,7 @@ describe('ConfigManager', () => {
       const rawConfig = manager.getRawConfig()
       expect(rawConfig).toBeDefined()
       expect(rawConfig?.mcpServers[`${TEST_MCP_PREFIX}active-mcp`]).toBeDefined()
-      expect(rawConfig?._mcpguard_disabled?.[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
+      expect(rawConfig?._mcpflare_disabled?.[`${TEST_MCP_PREFIX}disabled-mcp`]).toBeDefined()
     })
   })
 
@@ -719,7 +719,7 @@ describe('ConfigManager', () => {
       expect(displayName.length).toBeGreaterThan(0)
     })
 
-    it('should handle Claude Code config with _mcpguard_disabled section', () => {
+    it('should handle Claude Code config with _mcpflare_disabled section', () => {
       manager = new ConfigManager()
       
       // Create config mimicking Claude Code format with disabled MCPs
@@ -731,13 +731,13 @@ describe('ConfigManager', () => {
             env: { GITHUB_TOKEN: '${GITHUB_TOKEN}' }
           },
         },
-        _mcpguard_disabled: {
+        _mcpflare_disabled: {
           [`${TEST_MCP_PREFIX}disabled-claude-mcp`]: { 
             command: 'npx', 
             args: ['some-mcp-server']
           },
         },
-        _mcpguard_metadata: {
+        _mcpflare_metadata: {
           version: '1.0.0',
           disabled_at: new Date().toISOString(),
         },

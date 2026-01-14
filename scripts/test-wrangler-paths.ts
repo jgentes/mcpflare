@@ -6,7 +6,7 @@
  * Run with: npx tsx scripts/test-wrangler-paths.ts
  * 
  * To simulate the actual MCP server context, you can also run:
- * npx tsx D:\mcpguard\src\server\index.ts
+ * npx tsx D:\mcpflare\src\server\index.ts
  * (from a different directory to see if cwd matters)
  */
 
@@ -16,7 +16,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 // Simulate MCP server context - get the directory where this script is located
-// When MCP server runs via "npx tsx D:\mcpguard\src\server\index.ts", 
+// When MCP server runs via "npx tsx D:\mcpflare\src\server\index.ts", 
 // the cwd might be different from the script location
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDir, '..')

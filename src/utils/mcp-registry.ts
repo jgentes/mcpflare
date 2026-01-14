@@ -1,11 +1,11 @@
 /**
  * MCP Registry
  *
- * Reads security isolation settings from the MCP Guard Manager VS Code extension
+ * Reads security isolation settings from the MCPflare Manager VS Code extension
  * and provides them to the Worker Manager for configuring Worker isolates.
  *
  * IMPORTANT: The `isGuarded` state is derived from the IDE config (whether the MCP
- * is in `_mcpguard_disabled`), NOT stored in this settings file. This ensures a
+ * is in `_mcpflare_disabled`), NOT stored in this settings file. This ensures a
  * single source of truth for MCP guarded state.
  */
 
@@ -61,12 +61,12 @@ export interface MCPSecurityConfigStored {
  * This is what API consumers see - isGuarded is derived from IDE config
  */
 export interface MCPSecurityConfig extends MCPSecurityConfigStored {
-  /** Computed from IDE config - true if MCP is in _mcpguard_disabled */
+  /** Computed from IDE config - true if MCP is in _mcpflare_disabled */
   isGuarded: boolean
 }
 
 /**
- * Global MCP Guard settings (stored format)
+ * Global MCPflare settings (stored format)
  */
 /** Cached MCP schema entry (stored in settings.json) */
 export interface MCPSchemaCacheEntry {
@@ -88,9 +88,9 @@ export interface MCPSchemaCache {
 }
 
 /**
- * Global MCP Guard settings (stored format)
+ * Global MCPflare settings (stored format)
  */
-export interface MCPGuardSettingsStored {
+export interface MCPflareSettingsStored {
   enabled: boolean
   defaults: Omit<MCPSecurityConfigStored, 'id' | 'mcpName' | 'lastModified'>
   mcpConfigs: MCPSecurityConfigStored[]
@@ -109,9 +109,9 @@ export interface MCPGuardSettingsStored {
 }
 
 /**
- * Global MCP Guard settings (with computed isGuarded)
+ * Global MCPflare settings (with computed isGuarded)
  */
-export interface MCPGuardSettings {
+export interface MCPflareSettings {
   enabled: boolean
   defaults: Omit<
     MCPSecurityConfig,
@@ -181,7 +181,7 @@ const DEFAULT_SECURITY_CONFIG: Omit<
 /**
  * Default global settings (stored format)
  */
-const DEFAULT_SETTINGS_STORED: MCPGuardSettingsStored = {
+const DEFAULT_SETTINGS_STORED: MCPflareSettingsStored = {
   enabled: true,
   defaults: DEFAULT_SECURITY_CONFIG,
   mcpConfigs: [],
@@ -202,9 +202,9 @@ function getConfigManager(): ConfigManager {
 
 /**
  * Check if an MCP is guarded by looking at the IDE config
- * An MCP is guarded if it's in the _mcpguard_disabled section
+ * An MCP is guarded if it's in the _mcpflare_disabled section
  */
-function isMCPGuardedInIDEConfig(mcpName: string): boolean {
+function isMCPflareedInIDEConfig(mcpName: string): boolean {
   const configManager = getConfigManager()
   return configManager.isMCPDisabled(mcpName)
 }
@@ -217,7 +217,7 @@ function hydrateConfig(
 ): MCPSecurityConfig {
   return {
     ...storedConfig,
-    isGuarded: isMCPGuardedInIDEConfig(storedConfig.mcpName),
+    isGuarded: isMCPflareedInIDEConfig(storedConfig.mcpName),
   }
 }
 
@@ -230,10 +230,10 @@ function dehydrateConfig(config: MCPSecurityConfig): MCPSecurityConfigStored {
 }
 
 /**
- * Get the path to the MCP Guard settings file
+ * Get the path to the MCPflare settings file
  */
 export function getSettingsPath(): string {
-  const configDir = join(homedir(), '.mcpguard')
+  const configDir = join(homedir(), '.mcpflare')
 
   // Ensure directory exists
   if (!existsSync(configDir)) {
@@ -244,16 +244,16 @@ export function getSettingsPath(): string {
 }
 
 /**
- * Load MCP Guard settings from disk
+ * Load MCPflare settings from disk
  * Computes isGuarded for each config from IDE config state
  */
-export function loadSettings(): MCPGuardSettings {
+export function loadSettings(): MCPflareSettings {
   const settingsPath = getSettingsPath()
 
   if (!existsSync(settingsPath)) {
     logger.debug(
       { settingsPath },
-      'No MCP Guard settings file found, using defaults',
+      'No MCPflare settings file found, using defaults',
     )
     return {
       ...DEFAULT_SETTINGS_STORED,
@@ -263,25 +263,25 @@ export function loadSettings(): MCPGuardSettings {
 
   try {
     const content = readFileSync(settingsPath, 'utf-8')
-    const storedSettings = JSON.parse(content) as MCPGuardSettingsStored
+    const storedSettings = JSON.parse(content) as MCPflareSettingsStored
 
     // Hydrate configs with computed isGuarded from IDE config
     const hydratedConfigs = storedSettings.mcpConfigs.map(hydrateConfig)
 
-    const settings: MCPGuardSettings = {
+    const settings: MCPflareSettings = {
       ...storedSettings,
       mcpConfigs: hydratedConfigs,
     }
 
     logger.debug(
       { settingsPath, mcpCount: settings.mcpConfigs.length },
-      'Loaded MCP Guard settings',
+      'Loaded MCPflare settings',
     )
     return settings
   } catch (error) {
     logger.warn(
       { error, settingsPath },
-      'Failed to load MCP Guard settings, using defaults',
+      'Failed to load MCPflare settings, using defaults',
     )
     return {
       ...DEFAULT_SETTINGS_STORED,
@@ -291,15 +291,15 @@ export function loadSettings(): MCPGuardSettings {
 }
 
 /**
- * Save MCP Guard settings to disk
+ * Save MCPflare settings to disk
  * Does NOT save isGuarded - it's derived from IDE config
  */
-export function saveSettings(settings: MCPGuardSettings): void {
+export function saveSettings(settings: MCPflareSettings): void {
   const settingsPath = getSettingsPath()
 
   try {
     // Dehydrate configs before saving (remove isGuarded)
-    const storedSettings: MCPGuardSettingsStored = {
+    const storedSettings: MCPflareSettingsStored = {
       enabled: settings.enabled,
       defaults: settings.defaults,
       mcpConfigs: settings.mcpConfigs.map(dehydrateConfig),
@@ -308,9 +308,9 @@ export function saveSettings(settings: MCPGuardSettings): void {
     }
 
     writeFileSync(settingsPath, JSON.stringify(storedSettings, null, 2))
-    logger.debug({ settingsPath }, 'Saved MCP Guard settings')
+    logger.debug({ settingsPath }, 'Saved MCPflare settings')
   } catch (error) {
-    logger.error({ error, settingsPath }, 'Failed to save MCP Guard settings')
+    logger.error({ error, settingsPath }, 'Failed to save MCPflare settings')
     throw error
   }
 }
@@ -346,7 +346,7 @@ export function toWorkerIsolationConfig(
 
 /**
  * Get isolation configuration for a specific MCP
- * Returns undefined if no configuration exists or MCP Guard is disabled
+ * Returns undefined if no configuration exists or MCPflare is disabled
  * isGuarded is derived from IDE config, not stored in settings
  */
 export function getIsolationConfigForMCP(
@@ -354,16 +354,16 @@ export function getIsolationConfigForMCP(
 ): WorkerIsolationConfig | undefined {
   const settings = loadSettings()
 
-  // Check if MCP Guard is globally enabled
+  // Check if MCPflare is globally enabled
   if (!settings.enabled) {
-    logger.debug({ mcpName }, 'MCP Guard is globally disabled')
+    logger.debug({ mcpName }, 'MCPflare is globally disabled')
     return undefined
   }
 
-  // Check if MCP is guarded (in _mcpguard_disabled in IDE config)
-  const isGuarded = isMCPGuardedInIDEConfig(mcpName)
+  // Check if MCP is guarded (in _mcpflare_disabled in IDE config)
+  const isGuarded = isMCPflareedInIDEConfig(mcpName)
   if (!isGuarded) {
-    logger.debug({ mcpName }, 'MCP is not guarded (not in _mcpguard_disabled)')
+    logger.debug({ mcpName }, 'MCP is not guarded (not in _mcpflare_disabled)')
     return undefined
   }
 
@@ -374,7 +374,7 @@ export function getIsolationConfigForMCP(
     // Use default config for guarded MCP without explicit settings
     logger.debug(
       { mcpName },
-      'No MCP Guard config found for guarded MCP, using defaults',
+      'No MCPflare config found for guarded MCP, using defaults',
     )
     const defaultConfig: MCPSecurityConfig = {
       id: `config-${mcpName}-default`,
@@ -430,9 +430,9 @@ export function getAllGuardedMCPs(): Map<string, WorkerIsolationConfig> {
 
 /**
  * Check if an MCP should be guarded
- * Derives guarded status from IDE config (_mcpguard_disabled section)
+ * Derives guarded status from IDE config (_mcpflare_disabled section)
  */
-export function isMCPGuarded(mcpName: string): boolean {
+export function isMCPflareed(mcpName: string): boolean {
   const settings = loadSettings()
 
   if (!settings.enabled) {
@@ -440,7 +440,7 @@ export function isMCPGuarded(mcpName: string): boolean {
   }
 
   // Guarded status comes from IDE config, not settings
-  return isMCPGuardedInIDEConfig(mcpName)
+  return isMCPflareedInIDEConfig(mcpName)
 }
 
 /**
@@ -453,7 +453,7 @@ export function createDefaultConfig(mcpName: string): MCPSecurityConfig {
   return {
     id: `config-${mcpName}-${Date.now()}`,
     mcpName,
-    isGuarded: isMCPGuardedInIDEConfig(mcpName),
+    isGuarded: isMCPflareedInIDEConfig(mcpName),
     ...settings.defaults,
     lastModified: new Date().toISOString(),
   }
@@ -479,7 +479,7 @@ export function upsertMCPConfig(config: MCPSecurityConfig): void {
 
   saveSettings(settings)
   // isGuarded is derived from IDE config, so log the actual guarded state
-  const actualGuarded = isMCPGuardedInIDEConfig(config.mcpName)
+  const actualGuarded = isMCPflareedInIDEConfig(config.mcpName)
   logger.info(
     { mcpName: config.mcpName, isGuarded: actualGuarded },
     'Updated MCP configuration',
@@ -642,4 +642,4 @@ export function clearMCPSchemaCache(mcpName: string): {
 /**
  * Re-export the guarded check function for use by other modules
  */
-export { isMCPGuardedInIDEConfig as isGuardedInIDEConfig }
+export { isMCPflareedInIDEConfig as isGuardedInIDEConfig }

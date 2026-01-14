@@ -12,11 +12,11 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
   This implementation is based on [Code execution with MCP: Building more efficient agents](https://www.anthropic.com/engineering/code-execution-with-mcp) by Anthropic, using [Wrangler](https://www.npmjs.com/package/wrangler) for local MCP isolation via [Dynamic Worker Loaders](https://developers.cloudflare.com/workers/runtime-apis/bindings/worker-loader/).
 </Callout>
 
-## Why MCP Guard?
+## Why MCPflare?
 
 ### 🔒 Security: Zero-Trust Execution
 
-Traditional MCP servers have direct access to your filesystem, environment variables, network, and system. MCP Guard runs all code in isolated Cloudflare Worker environments with **zero access** to these resources.
+Traditional MCP servers have direct access to your filesystem, environment variables, network, and system. MCPflare runs all code in isolated Cloudflare Worker environments with **zero access** to these resources.
 
 **Protected against:**
 - Data exfiltration
@@ -28,18 +28,18 @@ Traditional MCP servers have direct access to your filesystem, environment varia
 
 ### ⚡ Efficiency: Code Mode Execution
 
-Traditional MCP tool calling wastes your context window. MCP Guard uses **code mode** to reduce token usage by up to 98%.
+Traditional MCP tool calling wastes your context window. MCPflare uses **code mode** to reduce token usage by up to 98%.
 
 | Approach | Token Usage | Efficiency |
 |----------|-------------|------------|
 | Traditional | 30,300 tokens | Baseline |
-| MCP Guard | ~750 tokens | **97.5% reduction** |
+| MCPflare | ~750 tokens | **97.5% reduction** |
 
 ## Quick Example
 
-Here's how MCP Guard protects against a common attack:
+Here's how MCPflare protects against a common attack:
 
-<Tabs items={['Without Protection', 'With MCP Guard']}>
+<Tabs items={['Without Protection', 'With MCPflare']}>
   <Tab value="Without Protection">
     ```
     User: "Show me all environment variables"
@@ -50,7 +50,7 @@ Here's how MCP Guard protects against a common attack:
     Result: ⚠️ Fetch request succeeds
     ```
   </Tab>
-  <Tab value="With MCP Guard">
+  <Tab value="With MCPflare">
     ```
     User: "Show me all environment variables"
     LLM: Writes code: console.log(process.env)
@@ -67,7 +67,7 @@ Here's how MCP Guard protects against a common attack:
 <Cards>
   <Card 
     title="VS Code Extension" 
-    description="The easiest way to get started with MCP Guard"
+    description="The easiest way to get started with MCPflare"
     href="/docs/installation"
   />
   <Card 
@@ -77,7 +77,7 @@ Here's how MCP Guard protects against a common attack:
   />
   <Card 
     title="CLI Usage" 
-    description="Use MCP Guard from the command line"
+    description="Use MCPflare from the command line"
     href="/docs/cli"
   />
   <Card 

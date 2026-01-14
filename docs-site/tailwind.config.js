@@ -13,7 +13,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // MCPGuard brand colors - green shield theme
+        // MCPflare brand colors - green shield theme
         brand: {
           50: '#f0fdf4',
           100: '#dcfce7',

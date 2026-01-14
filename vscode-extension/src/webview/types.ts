@@ -23,13 +23,13 @@ export interface ResourceLimits {
 
 /**
  * Security configuration for an MCP server
- * Note: isGuarded is computed from IDE config (whether MCP is in _mcpguard_disabled)
+ * Note: isGuarded is computed from IDE config (whether MCP is in _mcpflare_disabled)
  * It is NOT stored in settings.json - the extension derives it at runtime
  */
 export interface MCPSecurityConfig {
   id: string
   mcpName: string
-  /** Computed from IDE config - true if MCP is in _mcpguard_disabled section */
+  /** Computed from IDE config - true if MCP is in _mcpflare_disabled section */
   isGuarded: boolean
   network: NetworkConfig
   fileSystem: FileSystemConfig
@@ -165,7 +165,7 @@ export interface AssessmentErrorsCache {
   [mcpName: string]: MCPAssessmentError
 }
 
-export interface MCPGuardSettings {
+export interface MCPflareSettings {
   enabled: boolean
   defaults: Omit<
     MCPSecurityConfig,
@@ -199,7 +199,7 @@ export interface MCPConfigInput {
 export type WebviewMessage =
   | { type: 'getSettings' }
   | { type: 'getMCPServers' }
-  | { type: 'saveSettings'; data: MCPGuardSettings }
+  | { type: 'saveSettings'; data: MCPflareSettings }
   | {
       type: 'saveMCPConfig'
       data: MCPSecurityConfig
@@ -207,7 +207,7 @@ export type WebviewMessage =
     }
   | { type: 'importFromIDE' }
   | { type: 'refreshMCPs' }
-  | { type: 'openMCPGuardDocs' }
+  | { type: 'openMCPflareDocs' }
   | { type: 'assessTokens'; mcpName: string }
   | {
       type: 'openIDEConfig'
@@ -234,10 +234,10 @@ export type WebviewMessage =
  * Token savings summary data
  */
 export interface TokenSavingsSummary {
-  /** Total tokens that would be used without MCPGuard */
+  /** Total tokens that would be used without MCPflare */
   totalTokensWithoutGuard: number
-  /** Tokens used by MCPGuard itself (~500 for its tools) */
-  mcpGuardTokens: number
+  /** Tokens used by MCPflare itself (~500 for its tools) */
+  mcpflareTokens: number
   /** Net tokens saved */
   tokensSaved: number
   /** Number of MCPs with assessed token metrics */
@@ -284,7 +284,7 @@ export interface ConnectionTestStep {
 }
 
 export type ExtensionMessage =
-  | { type: 'settings'; data: MCPGuardSettings }
+  | { type: 'settings'; data: MCPflareSettings }
   | { type: 'mcpServers'; data: MCPServerInfo[] }
   | { type: 'error'; message: string }
   | { type: 'success'; message: string }
@@ -319,7 +319,7 @@ export const DEFAULT_SECURITY_CONFIG: Omit<
   },
 }
 
-export const DEFAULT_SETTINGS: MCPGuardSettings = {
+export const DEFAULT_SETTINGS: MCPflareSettings = {
   enabled: true,
   defaults: DEFAULT_SECURITY_CONFIG,
   mcpConfigs: [],

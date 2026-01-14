@@ -95,7 +95,7 @@ export class MCPBridge extends WorkerEntrypoint<{
  * automatically go through this proxy.
  *
  * How it works:
- * 1. Dynamic worker wraps fetch() and adds X-MCPGuard-* headers with allowlist config
+ * 1. Dynamic worker wraps fetch() and adds X-MCPflare-* headers with allowlist config
  * 2. Dynamic worker calls fetch('https://api.github.com/...')
  * 3. Because `globalOutbound` is set to FetchProxy, the request comes here
  * 4. FetchProxy reads the allowlist from the headers
@@ -116,9 +116,9 @@ export class FetchProxy extends WorkerEntrypoint {
   async fetch(request: Request): Promise<Response> {
     // Read allowlist configuration from headers (set by dynamic worker's fetch wrapper)
     const allowedHostsHeader =
-      request.headers.get('X-MCPGuard-Allowed-Hosts') || ''
+      request.headers.get('X-MCPflare-Allowed-Hosts') || ''
     const allowLocalhostHeader =
-      request.headers.get('X-MCPGuard-Allow-Localhost') || 'false'
+      request.headers.get('X-MCPflare-Allow-Localhost') || 'false'
 
     const allowedHosts: string[] = allowedHostsHeader
       ? allowedHostsHeader
@@ -140,7 +140,7 @@ export class FetchProxy extends WorkerEntrypoint {
     if (isLoopback && !allowLocalhost) {
       return new Response(
         JSON.stringify({
-          error: `MCPGuard network policy: localhost blocked (${hostname})`,
+          error: `MCPflare network policy: localhost blocked (${hostname})`,
         }),
         {
           status: 403,
@@ -155,7 +155,7 @@ export class FetchProxy extends WorkerEntrypoint {
       if (!isAllowed) {
         return new Response(
           JSON.stringify({
-            error: `MCPGuard network policy: ${hostname} is not in the allowed hosts list`,
+            error: `MCPflare network policy: ${hostname} is not in the allowed hosts list`,
           }),
           {
             status: 403,
@@ -166,10 +166,10 @@ export class FetchProxy extends WorkerEntrypoint {
     }
 
     // Host is allowed - proxy the request
-    // Strip the MCPGuard headers before forwarding
+    // Strip the MCPflare headers before forwarding
     const forwardHeaders = new Headers(request.headers)
-    forwardHeaders.delete('X-MCPGuard-Allowed-Hosts')
-    forwardHeaders.delete('X-MCPGuard-Allow-Localhost')
+    forwardHeaders.delete('X-MCPflare-Allowed-Hosts')
+    forwardHeaders.delete('X-MCPflare-Allow-Localhost')
 
     return fetch(request.url, {
       method: request.method,

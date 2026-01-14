@@ -9,14 +9,14 @@ dotenv.config()
 
 async function main() {
   try {
-    logger.info('Starting MCP Guard...')
+    logger.info('Starting MCPflare...')
 
     const handler = new MCPHandler()
     await handler.start()
 
-    logger.info('MCP Guard is ready to accept connections')
+    logger.info('MCPflare is ready to accept connections')
   } catch (error: unknown) {
-    logger.error({ error }, 'Failed to start MCP Guard')
+    logger.error({ error }, 'Failed to start MCPflare')
     process.exit(1)
   }
 }

@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-We take the security of MCP Guard seriously. If you discover a security vulnerability, please report it responsibly.
+We take the security of MCPflare seriously. If you discover a security vulnerability, please report it responsibly.
 
 ### How to Report
 
@@ -18,13 +18,13 @@ We take the security of MCP Guard seriously. If you discover a security vulnerab
 Instead, please report them via one of the following methods:
 
 1. **GitHub Private Vulnerability Reporting** (Preferred)
-   - Go to the [Security tab](https://github.com/jgentes/mcpguard/security) of this repository
+   - Go to the [Security tab](https://github.com/jgentes/mcpflare/security) of this repository
    - Click "Report a vulnerability"
    - Fill out the form with details about the vulnerability
 
 2. **Email**
    - Send an email to: security@forgedapps.com
-   - Include "MCPGuard Security" in the subject line
+   - Include "MCPflare Security" in the subject line
 
 ### What to Include
 
@@ -53,16 +53,16 @@ Please include the following information in your report:
 
 ### Security Best Practices for Users
 
-When using MCP Guard:
+When using MCPflare:
 
-1. **Keep Updated**: Always use the latest version of MCP Guard
+1. **Keep Updated**: Always use the latest version of MCPflare
 2. **Review MCP Servers**: Only load trusted MCP servers
 3. **Monitor Logs**: Watch for unusual patterns in execution logs
 4. **Environment Variables**: Use environment variable placeholders (`${VAR}`) instead of hardcoding secrets
 
 ## Security Architecture
 
-MCP Guard implements defense-in-depth security:
+MCPflare implements defense-in-depth security:
 
 1. **V8 Isolate Sandboxing** - Complete process isolation
 2. **Network Isolation** - No outbound network access from sandboxed code
@@ -70,7 +70,7 @@ MCP Guard implements defense-in-depth security:
 4. **Binding-Based Access** - Explicit, scoped permissions
 5. **Disposable Environments** - No state persistence between executions
 
-For a detailed security analysis, see the [Security Analysis](https://jgentes.github.io/mcpguard/docs/security) documentation.
+For a detailed security analysis, see the [Security Analysis](https://jgentes.github.io/mcpflare/docs/security) documentation.
 
 ## Security Updates
 

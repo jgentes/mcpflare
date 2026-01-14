@@ -11,14 +11,14 @@ import logger from './logger.js'
  */
 export interface MCPServersConfig {
   mcpServers: Record<string, unknown> // Use unknown to allow both command-based and url-based configs
-  // MCPGuard metadata: stores disabled MCPs that should be guarded
-  _mcpguard_disabled?: Record<string, unknown>
-  _mcpguard_metadata?: {
+  // MCPflare metadata: stores disabled MCPs that should be guarded
+  _mcpflare_disabled?: Record<string, unknown>
+  _mcpflare_metadata?: {
     version?: string
     disabled_at?: string
   }
   // Transparent proxy configuration
-  _mcpguard?: {
+  _mcpflare?: {
     mode?: 'transparent-proxy' | 'manual' | 'auto-detect'
     auto_guard_new?: boolean
     namespace_tools?: boolean
@@ -412,18 +412,18 @@ export class ConfigManager {
         config.mcpServers = {}
       }
 
-      // Filter out disabled MCPs from active config (they're stored in _mcpguard_disabled)
+      // Filter out disabled MCPs from active config (they're stored in _mcpflare_disabled)
       // This ensures disabled MCPs don't appear in getSavedConfigs()
       const activeConfig: MCPServersConfig = {
         mcpServers: {},
-        _mcpguard_disabled: config._mcpguard_disabled,
-        _mcpguard_metadata: config._mcpguard_metadata,
+        _mcpflare_disabled: config._mcpflare_disabled,
+        _mcpflare_metadata: config._mcpflare_metadata,
       }
 
       // Only include MCPs that are not disabled
       for (const [name, mcpConfig] of Object.entries(config.mcpServers)) {
         // Skip if this MCP is in the disabled list
-        if (config._mcpguard_disabled?.[name]) {
+        if (config._mcpflare_disabled?.[name]) {
           continue
         }
         activeConfig.mcpServers[name] = mcpConfig
@@ -490,7 +490,7 @@ export class ConfigManager {
 
   /**
    * Get all saved MCP configurations from the detected config file
-   * Excludes disabled MCPs (they're stored in _mcpguard_disabled)
+   * Excludes disabled MCPs (they're stored in _mcpflare_disabled)
    * Returns configs as-is (supports both command-based and url-based)
    */
   getSavedConfigs(): Record<
@@ -611,14 +611,14 @@ export class ConfigManager {
       deleted = true
     }
 
-    // Also delete from disabled section (_mcpguard_disabled)
-    if (existingConfig._mcpguard_disabled?.[mcpName]) {
-      delete existingConfig._mcpguard_disabled[mcpName]
+    // Also delete from disabled section (_mcpflare_disabled)
+    if (existingConfig._mcpflare_disabled?.[mcpName]) {
+      delete existingConfig._mcpflare_disabled[mcpName]
       deleted = true
 
       // Clean up disabled section if empty
-      if (Object.keys(existingConfig._mcpguard_disabled).length === 0) {
-        delete existingConfig._mcpguard_disabled
+      if (Object.keys(existingConfig._mcpflare_disabled).length === 0) {
+        delete existingConfig._mcpflare_disabled
       }
     }
 
@@ -744,7 +744,7 @@ export class ConfigManager {
   /**
    * Get all configured MCPs (including disabled ones) for transparent proxy discovery
    * Returns all MCPs with their status (active or disabled)
-   * Excludes mcpguard itself
+   * Excludes mcpflare itself
    */
   getAllConfiguredMCPs(): Record<
     string,
@@ -772,9 +772,9 @@ export class ConfigManager {
       return allMCPs
     }
 
-    // Include active MCPs (except mcpguard)
+    // Include active MCPs (except mcpflare)
     for (const [name, config] of Object.entries(rawConfig.mcpServers || {})) {
-      if (name.toLowerCase() !== 'mcpguard' && config) {
+      if (name.toLowerCase() !== 'mcpflare' && config) {
         allMCPs[name] = {
           config: config as MCPConfig,
           source: this.configSource,
@@ -783,11 +783,11 @@ export class ConfigManager {
       }
     }
 
-    // Include disabled MCPs (except mcpguard)
+    // Include disabled MCPs (except mcpflare)
     for (const [name, config] of Object.entries(
-      rawConfig._mcpguard_disabled || {},
+      rawConfig._mcpflare_disabled || {},
     )) {
-      if (name.toLowerCase() !== 'mcpguard' && config) {
+      if (name.toLowerCase() !== 'mcpflare' && config) {
         allMCPs[name] = {
           config: config as MCPConfig,
           source: this.configSource,
@@ -800,9 +800,9 @@ export class ConfigManager {
   }
 
   /**
-   * Get all MCP configurations excluding mcpguard itself
+   * Get all MCP configurations excluding mcpflare itself
    * Used for discovery and transparency - shows what MCPs are configured
-   * (including disabled ones) but should be accessed through MCPGuard
+   * (including disabled ones) but should be accessed through MCPflare
    */
   getGuardedMCPConfigs(): Record<
     string,
@@ -823,9 +823,9 @@ export class ConfigManager {
       return guardedConfigs
     }
 
-    // Include active MCPs (except mcpguard)
+    // Include active MCPs (except mcpflare)
     for (const [name, config] of Object.entries(rawConfig.mcpServers || {})) {
-      if (name.toLowerCase() !== 'mcpguard' && config) {
+      if (name.toLowerCase() !== 'mcpflare' && config) {
         // Cast to MCPConfig (supports both command-based and url-based)
         guardedConfigs[name] = {
           config: config as MCPConfig,
@@ -834,11 +834,11 @@ export class ConfigManager {
       }
     }
 
-    // Include disabled MCPs (except mcpguard) for transparency
+    // Include disabled MCPs (except mcpflare) for transparency
     for (const [name, config] of Object.entries(
-      rawConfig._mcpguard_disabled || {},
+      rawConfig._mcpflare_disabled || {},
     )) {
-      if (name.toLowerCase() !== 'mcpguard' && config) {
+      if (name.toLowerCase() !== 'mcpflare' && config) {
         // Cast to MCPConfig (supports both command-based and url-based)
         guardedConfigs[name] = {
           config: config as MCPConfig,
@@ -852,7 +852,7 @@ export class ConfigManager {
 
   /**
    * Disable an MCP server by moving it to the disabled section
-   * This prevents the IDE from loading it directly, ensuring MCPGuard is used instead
+   * This prevents the IDE from loading it directly, ensuring MCPflare is used instead
    * @param mcpName Name of the MCP server to disable
    * @returns true if the MCP was disabled, false if it wasn't found or already disabled
    */
@@ -871,7 +871,7 @@ export class ConfigManager {
     // Check if MCP exists and is not already disabled
     if (!rawConfig.mcpServers[mcpName]) {
       // Check if it's already disabled
-      if (rawConfig._mcpguard_disabled?.[mcpName]) {
+      if (rawConfig._mcpflare_disabled?.[mcpName]) {
         logger.info({ mcpName }, 'MCP is already disabled')
         return false
       }
@@ -884,16 +884,16 @@ export class ConfigManager {
     delete rawConfig.mcpServers[mcpName]
 
     // Initialize disabled section if needed
-    if (!rawConfig._mcpguard_disabled) {
-      rawConfig._mcpguard_disabled = {}
+    if (!rawConfig._mcpflare_disabled) {
+      rawConfig._mcpflare_disabled = {}
     }
-    rawConfig._mcpguard_disabled[mcpName] = mcpConfig
+    rawConfig._mcpflare_disabled[mcpName] = mcpConfig
 
     // Initialize metadata if needed
-    if (!rawConfig._mcpguard_metadata) {
-      rawConfig._mcpguard_metadata = {}
+    if (!rawConfig._mcpflare_metadata) {
+      rawConfig._mcpflare_metadata = {}
     }
-    rawConfig._mcpguard_metadata.disabled_at = new Date().toISOString()
+    rawConfig._mcpflare_metadata.disabled_at = new Date().toISOString()
 
     this.writeConfigFile(this.configPath, rawConfig)
 
@@ -901,7 +901,7 @@ export class ConfigManager {
     const sourceName = ide ? ide.displayName : 'IDE'
     logger.info(
       { mcpName, configPath: this.configPath, source: this.configSource },
-      `MCP disabled in ${sourceName} config file (moved to _mcpguard_disabled)`,
+      `MCP disabled in ${sourceName} config file (moved to _mcpflare_disabled)`,
     )
 
     return true
@@ -925,14 +925,14 @@ export class ConfigManager {
     }
 
     // Check if MCP is in disabled list
-    if (!rawConfig._mcpguard_disabled?.[mcpName]) {
+    if (!rawConfig._mcpflare_disabled?.[mcpName]) {
       logger.warn({ mcpName }, 'MCP not found in disabled list')
       return false
     }
 
     // Move MCP back to active config
-    const mcpConfig = rawConfig._mcpguard_disabled[mcpName]
-    delete rawConfig._mcpguard_disabled[mcpName]
+    const mcpConfig = rawConfig._mcpflare_disabled[mcpName]
+    delete rawConfig._mcpflare_disabled[mcpName]
 
     // Ensure mcpServers exists
     if (!rawConfig.mcpServers) {
@@ -942,10 +942,10 @@ export class ConfigManager {
 
     // Clean up disabled section if empty
     if (
-      rawConfig._mcpguard_disabled &&
-      Object.keys(rawConfig._mcpguard_disabled).length === 0
+      rawConfig._mcpflare_disabled &&
+      Object.keys(rawConfig._mcpflare_disabled).length === 0
     ) {
-      delete rawConfig._mcpguard_disabled
+      delete rawConfig._mcpflare_disabled
     }
 
     this.writeConfigFile(this.configPath, rawConfig)
@@ -954,29 +954,29 @@ export class ConfigManager {
     const sourceName = ide ? ide.displayName : 'IDE'
     logger.info(
       { mcpName, configPath: this.configPath, source: this.configSource },
-      `MCP enabled in ${sourceName} config file (moved from _mcpguard_disabled)`,
+      `MCP enabled in ${sourceName} config file (moved from _mcpflare_disabled)`,
     )
 
     return true
   }
 
   /**
-   * Disable all MCPs except mcpguard
-   * Used during setup to ensure only MCPGuard is accessible
-   * Also ensures mcpguard is in the config (if it exists in disabled, moves it to active)
+   * Disable all MCPs except mcpflare
+   * Used during setup to ensure only MCPflare is accessible
+   * Also ensures mcpflare is in the config (if it exists in disabled, moves it to active)
    * @returns Object with results
    */
-  disableAllExceptMCPGuard(): {
+  disableAllExceptMCPflare(): {
     disabled: string[]
     failed: string[]
     alreadyDisabled: string[]
-    mcpguardRestored: boolean
+    mcpflareRestored: boolean
   } {
     const result = {
       disabled: [] as string[],
       failed: [] as string[],
       alreadyDisabled: [] as string[],
-      mcpguardRestored: false,
+      mcpflareRestored: false,
     }
 
     if (!this.configPath) {
@@ -989,20 +989,20 @@ export class ConfigManager {
       return result
     }
 
-    // If mcpguard is disabled, restore it first (but don't count it in results)
-    if (rawConfig._mcpguard_disabled?.mcpguard) {
-      this.enableMCP('mcpguard')
-      result.mcpguardRestored = true
+    // If mcpflare is disabled, restore it first (but don't count it in results)
+    if (rawConfig._mcpflare_disabled?.mcpflare) {
+      this.enableMCP('mcpflare')
+      result.mcpflareRestored = true
     }
 
-    // Disable all MCPs except mcpguard
+    // Disable all MCPs except mcpflare
     for (const [mcpName] of Object.entries(rawConfig.mcpServers)) {
-      if (mcpName.toLowerCase() === 'mcpguard') {
-        continue // Skip mcpguard
+      if (mcpName.toLowerCase() === 'mcpflare') {
+        continue // Skip mcpflare
       }
 
       // Check if already disabled
-      if (rawConfig._mcpguard_disabled?.[mcpName]) {
+      if (rawConfig._mcpflare_disabled?.[mcpName]) {
         result.alreadyDisabled.push(mcpName)
       } else if (this.disableMCP(mcpName)) {
         result.disabled.push(mcpName)
@@ -1027,12 +1027,12 @@ export class ConfigManager {
 
     // Read raw config
     const rawConfig = this.readRawConfigFile(this.configPath)
-    if (!rawConfig || !rawConfig._mcpguard_disabled) {
+    if (!rawConfig || !rawConfig._mcpflare_disabled) {
       return restored
     }
 
     // Restore all disabled MCPs
-    for (const [mcpName] of Object.entries(rawConfig._mcpguard_disabled)) {
+    for (const [mcpName] of Object.entries(rawConfig._mcpflare_disabled)) {
       if (this.enableMCP(mcpName)) {
         restored.push(mcpName)
       }
@@ -1052,11 +1052,11 @@ export class ConfigManager {
 
     // Read raw config to see disabled MCPs
     const rawConfig = this.readConfigFile(this.configPath)
-    if (!rawConfig || !rawConfig._mcpguard_disabled) {
+    if (!rawConfig || !rawConfig._mcpflare_disabled) {
       return []
     }
 
-    return Object.keys(rawConfig._mcpguard_disabled)
+    return Object.keys(rawConfig._mcpflare_disabled)
   }
 
   /**

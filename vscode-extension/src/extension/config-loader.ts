@@ -2,7 +2,7 @@
  * Configuration Loader
  *
  * Loads MCP configurations from various IDE config files
- * and provides functions to disable/enable MCPs for MCP Guard integration.
+ * and provides functions to disable/enable MCPs for MCPflare integration.
  *
  * Supports Claude Code, GitHub Copilot, and Cursor IDEs.
  */
@@ -17,9 +17,9 @@ import type { MCPServerInfo } from './types'
  */
 interface MCPServersConfig {
   mcpServers: Record<string, unknown>
-  // MCPGuard metadata: stores disabled MCPs that should be guarded
-  _mcpguard_disabled?: Record<string, unknown>
-  _mcpguard_metadata?: {
+  // MCPflare metadata: stores disabled MCPs that should be guarded
+  _mcpflare_disabled?: Record<string, unknown>
+  _mcpflare_metadata?: {
     version?: string
     disabled_at?: string
   }
@@ -259,12 +259,12 @@ type MCPServerConfig = {
  */
 type IDEConfig = {
   mcpServers?: Record<string, MCPServerConfig>
-  _mcpguard_disabled?: Record<string, Omit<MCPServerConfig, 'disabled'>>
+  _mcpflare_disabled?: Record<string, Omit<MCPServerConfig, 'disabled'>>
 } | null
 
 /**
  * Load MCPs from an IDE config file
- * Supports both active MCPs and disabled MCPs from _mcpguard_disabled section
+ * Supports both active MCPs and disabled MCPs from _mcpflare_disabled section
  * Also supports legacy `disabled: true` property for backwards compatibility
  */
 function loadIDEConfig(
@@ -285,7 +285,7 @@ function loadIDEConfig(
 
     if (config.mcpServers) {
       for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-        if (name === 'mcpguard') {
+        if (name === 'mcpflare') {
           continue
         }
 
@@ -302,11 +302,11 @@ function loadIDEConfig(
       }
     }
 
-    if (config._mcpguard_disabled) {
+    if (config._mcpflare_disabled) {
       for (const [name, serverConfig] of Object.entries(
-        config._mcpguard_disabled,
+        config._mcpflare_disabled,
       )) {
-        if (name === 'mcpguard') {
+        if (name === 'mcpflare') {
           continue
         }
 
@@ -374,10 +374,10 @@ export function loadAllMCPServers(): MCPServerInfo[] {
 }
 
 /**
- * Get the path to the MCP Guard settings file
+ * Get the path to the MCPflare settings file
  */
 export function getSettingsPath(): string {
-  const configDir = path.join(os.homedir(), '.mcpguard')
+  const configDir = path.join(os.homedir(), '.mcpflare')
 
   // Ensure directory exists
   if (!fs.existsSync(configDir)) {
@@ -466,7 +466,7 @@ function readRawConfigFile(filePath: string): MCPServersConfig | null {
     const config = JSON.parse(content) as MCPServersConfig
 
     if (!config || typeof config !== 'object') {
-      console.error('MCP Guard: Invalid config file format')
+      console.error('MCPflare: Invalid config file format')
       return null
     }
 
@@ -477,7 +477,7 @@ function readRawConfigFile(filePath: string): MCPServersConfig | null {
 
     return config
   } catch (error) {
-    console.error('MCP Guard: Failed to read config file:', error)
+    console.error('MCPflare: Failed to read config file:', error)
     return null
   }
 }
@@ -497,13 +497,13 @@ function writeConfigFile(filePath: string, config: MCPServersConfig): boolean {
     fs.writeFileSync(filePath, content, 'utf-8')
     return true
   } catch (error) {
-    console.error('MCP Guard: Failed to write config file:', error)
+    console.error('MCPflare: Failed to write config file:', error)
     return false
   }
 }
 
 /**
- * Check if an MCP is disabled (in the _mcpguard_disabled section)
+ * Check if an MCP is disabled (in the _mcpflare_disabled section)
  */
 /**
  * Check if an MCP is disabled (guarded) in the IDE config
@@ -522,12 +522,12 @@ export function isMCPDisabled(
   const rawConfig = readRawConfigFile(configPath)
   if (!rawConfig) return false
 
-  return !!rawConfig._mcpguard_disabled?.[mcpName]
+  return !!rawConfig._mcpflare_disabled?.[mcpName]
 }
 
 /**
- * Disable an MCP by moving it to the _mcpguard_disabled section
- * This prevents the IDE from loading it directly, ensuring MCPGuard proxies it instead
+ * Disable an MCP by moving it to the _mcpflare_disabled section
+ * This prevents the IDE from loading it directly, ensuring MCPflare proxies it instead
  * @param mcpName Name of the MCP to disable
  * @param source Optional source IDE - if provided, modifies that IDE's config; otherwise uses primary
  */
@@ -563,7 +563,7 @@ export function disableMCPInIDE(
 
   // Check if MCP exists and is not already disabled
   if (!rawConfig.mcpServers[mcpName]) {
-    if (rawConfig._mcpguard_disabled?.[mcpName]) {
+    if (rawConfig._mcpflare_disabled?.[mcpName]) {
       return {
         success: true,
         message: 'MCP is already disabled',
@@ -582,16 +582,16 @@ export function disableMCPInIDE(
   delete rawConfig.mcpServers[mcpName]
 
   // Initialize disabled section if needed
-  if (!rawConfig._mcpguard_disabled) {
-    rawConfig._mcpguard_disabled = {}
+  if (!rawConfig._mcpflare_disabled) {
+    rawConfig._mcpflare_disabled = {}
   }
-  rawConfig._mcpguard_disabled[mcpName] = mcpConfig
+  rawConfig._mcpflare_disabled[mcpName] = mcpConfig
 
   // Update metadata
-  if (!rawConfig._mcpguard_metadata) {
-    rawConfig._mcpguard_metadata = {}
+  if (!rawConfig._mcpflare_metadata) {
+    rawConfig._mcpflare_metadata = {}
   }
-  rawConfig._mcpguard_metadata.disabled_at = new Date().toISOString()
+  rawConfig._mcpflare_metadata.disabled_at = new Date().toISOString()
 
   if (!writeConfigFile(configPath, rawConfig)) {
     return {
@@ -601,10 +601,10 @@ export function disableMCPInIDE(
     }
   }
 
-  console.log(`MCP Guard: Disabled ${mcpName} in IDE config`)
+  console.log(`MCPflare: Disabled ${mcpName} in IDE config`)
   return {
     success: true,
-    message: `${mcpName} disabled - will be proxied through MCP Guard`,
+    message: `${mcpName} disabled - will be proxied through MCPflare`,
     requiresRestart: false,
   }
 }
@@ -645,7 +645,7 @@ export function enableMCPInIDE(
   }
 
   // Check if MCP is in disabled list
-  if (!rawConfig._mcpguard_disabled?.[mcpName]) {
+  if (!rawConfig._mcpflare_disabled?.[mcpName]) {
     // Check if it's already active
     if (rawConfig.mcpServers[mcpName]) {
       return {
@@ -662,8 +662,8 @@ export function enableMCPInIDE(
   }
 
   // Move MCP back to active config
-  const mcpConfig = rawConfig._mcpguard_disabled[mcpName]
-  delete rawConfig._mcpguard_disabled[mcpName]
+  const mcpConfig = rawConfig._mcpflare_disabled[mcpName]
+  delete rawConfig._mcpflare_disabled[mcpName]
 
   // Ensure mcpServers exists
   if (!rawConfig.mcpServers) {
@@ -673,10 +673,10 @@ export function enableMCPInIDE(
 
   // Clean up disabled section if empty
   if (
-    rawConfig._mcpguard_disabled &&
-    Object.keys(rawConfig._mcpguard_disabled).length === 0
+    rawConfig._mcpflare_disabled &&
+    Object.keys(rawConfig._mcpflare_disabled).length === 0
   ) {
-    delete rawConfig._mcpguard_disabled
+    delete rawConfig._mcpflare_disabled
   }
 
   if (!writeConfigFile(configPath, rawConfig)) {
@@ -687,7 +687,7 @@ export function enableMCPInIDE(
     }
   }
 
-  console.log(`MCP Guard: Enabled ${mcpName} in IDE config`)
+  console.log(`MCPflare: Enabled ${mcpName} in IDE config`)
   return {
     success: true,
     message: `${mcpName} restored to active config`,
@@ -696,10 +696,10 @@ export function enableMCPInIDE(
 }
 
 /**
- * Ensure mcpguard is in the IDE config
+ * Ensure mcpflare is in the IDE config
  * If not present, adds it with the bundled server path
  */
-export function ensureMCPGuardInConfig(extensionPath: string): {
+export function ensureMCPflareInConfig(extensionPath: string): {
   success: boolean
   message: string
   added: boolean
@@ -726,7 +726,7 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
       )
       const newConfig: MCPServersConfig = {
         mcpServers: {
-          mcpguard: {
+          mcpflare: {
             command: 'node',
             args: [serverPath],
           },
@@ -741,10 +741,10 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
         }
       }
 
-      console.log('MCP Guard: Created IDE config with mcpguard entry')
+      console.log('MCPflare: Created IDE config with mcpflare entry')
       return {
         success: true,
-        message: 'Created IDE config with mcpguard',
+        message: 'Created IDE config with mcpflare',
         added: true,
       }
     } catch {
@@ -765,21 +765,21 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
     }
   }
 
-  // Check if mcpguard already exists
-  if (rawConfig.mcpServers['mcpguard']) {
+  // Check if mcpflare already exists
+  if (rawConfig.mcpServers['mcpflare']) {
     return {
       success: true,
-      message: 'mcpguard already in config',
+      message: 'mcpflare already in config',
       added: false,
     }
   }
 
   // Check if it's in disabled section (shouldn't be, but just in case)
-  if (rawConfig._mcpguard_disabled?.['mcpguard']) {
+  if (rawConfig._mcpflare_disabled?.['mcpflare']) {
     // Move it back to active
-    const mcpConfig = rawConfig._mcpguard_disabled['mcpguard']
-    delete rawConfig._mcpguard_disabled['mcpguard']
-    rawConfig.mcpServers['mcpguard'] = mcpConfig
+    const mcpConfig = rawConfig._mcpflare_disabled['mcpflare']
+    delete rawConfig._mcpflare_disabled['mcpflare']
+    rawConfig.mcpServers['mcpflare'] = mcpConfig
 
     if (!writeConfigFile(configPath, rawConfig)) {
       return {
@@ -789,15 +789,15 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
       }
     }
 
-    console.log('MCP Guard: Restored mcpguard from disabled section')
+    console.log('MCPflare: Restored mcpflare from disabled section')
     return {
       success: true,
-      message: 'Restored mcpguard to active config',
+      message: 'Restored mcpflare to active config',
       added: true,
     }
   }
 
-  // Add mcpguard entry pointing to the bundled server
+  // Add mcpflare entry pointing to the bundled server
   const serverPath = path.join(
     extensionPath,
     '..',
@@ -805,7 +805,7 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
     'server',
     'index.js',
   )
-  rawConfig.mcpServers['mcpguard'] = {
+  rawConfig.mcpServers['mcpflare'] = {
     command: 'node',
     args: [serverPath],
   }
@@ -818,15 +818,15 @@ export function ensureMCPGuardInConfig(extensionPath: string): {
     }
   }
 
-  console.log('MCP Guard: Added mcpguard to IDE config')
-  return { success: true, message: 'Added mcpguard to IDE config', added: true }
+  console.log('MCPflare: Added mcpflare to IDE config')
+  return { success: true, message: 'Added mcpflare to IDE config', added: true }
 }
 
 /**
- * Remove mcpguard from the IDE config
- * Used when MCP Guard is globally disabled
+ * Remove mcpflare from the IDE config
+ * Used when MCPflare is globally disabled
  */
-export function removeMCPGuardFromConfig(): {
+export function removeMCPflareFromConfig(): {
   success: boolean
   message: string
 } {
@@ -840,20 +840,20 @@ export function removeMCPGuardFromConfig(): {
     return { success: false, message: 'Failed to read IDE config' }
   }
 
-  // Check if mcpguard exists in active config
-  if (!rawConfig.mcpServers['mcpguard']) {
-    return { success: true, message: 'mcpguard not in config' }
+  // Check if mcpflare exists in active config
+  if (!rawConfig.mcpServers['mcpflare']) {
+    return { success: true, message: 'mcpflare not in config' }
   }
 
-  // Remove mcpguard from active config
-  delete rawConfig.mcpServers['mcpguard']
+  // Remove mcpflare from active config
+  delete rawConfig.mcpServers['mcpflare']
 
   if (!writeConfigFile(configPath, rawConfig)) {
     return { success: false, message: 'Failed to write config file' }
   }
 
-  console.log('MCP Guard: Removed mcpguard from IDE config')
-  return { success: true, message: 'Removed mcpguard from IDE config' }
+  console.log('MCPflare: Removed mcpflare from IDE config')
+  return { success: true, message: 'Removed mcpflare from IDE config' }
 }
 
 /**
@@ -872,7 +872,7 @@ export function getMCPStatus(
     return 'active'
   }
 
-  if (rawConfig._mcpguard_disabled?.[mcpName]) {
+  if (rawConfig._mcpflare_disabled?.[mcpName]) {
     return 'disabled'
   }
 
@@ -891,7 +891,7 @@ export function getAllConfiguredMCPNames(): string[] {
  * Invalidate cache for a specific MCP
  * Call this when an MCP is deleted, modified, or its guard status changes
  * This forces a fresh assessment on the next load AND clears the schema cache
- * so that the MCPGuard server will re-fetch tools from the MCP
+ * so that the MCPflare server will re-fetch tools from the MCP
  */
 export function invalidateMCPCache(mcpName: string): {
   success: boolean
@@ -925,7 +925,7 @@ export function invalidateMCPCache(mcpName: string): {
 
     // Clear MCP schema cache for this MCP
     // Schema cache keys are in format "mcpName:configHash", so we need to find and remove all matching entries
-    // This is CRITICAL - without this, the MCPGuard server will continue using cached (possibly empty) schemas
+    // This is CRITICAL - without this, the MCPflare server will continue using cached (possibly empty) schemas
     if (settings.mcpSchemaCache) {
       const keysToRemove = Object.keys(settings.mcpSchemaCache).filter((key) =>
         key.startsWith(`${mcpName}:`),
@@ -942,7 +942,7 @@ export function invalidateMCPCache(mcpName: string): {
     if (changed) {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
       console.log(
-        `MCP Guard: Invalidated cache for ${mcpName} - cleared: ${clearedCaches.join(', ')}`,
+        `MCPflare: Invalidated cache for ${mcpName} - cleared: ${clearedCaches.join(', ')}`,
       )
       return {
         success: true,
@@ -953,7 +953,7 @@ export function invalidateMCPCache(mcpName: string): {
     return { success: true, message: `No cache entries found for ${mcpName}` }
   } catch (error) {
     console.error(
-      `MCP Guard: Failed to invalidate cache for ${mcpName}:`,
+      `MCPflare: Failed to invalidate cache for ${mcpName}:`,
       error,
     )
     return { success: false, message: `Failed to invalidate cache: ${error}` }
@@ -1004,13 +1004,13 @@ export function cleanupTokenMetricsCache(): { removed: string[] } {
     if (removed.length > 0) {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
       console.log(
-        `MCP Guard: Cleaned up cache entries for removed MCPs: ${removed.join(', ')}`,
+        `MCPflare: Cleaned up cache entries for removed MCPs: ${removed.join(', ')}`,
       )
     }
 
     return { removed }
   } catch (error) {
-    console.error('MCP Guard: Failed to clean up token metrics cache:', error)
+    console.error('MCPflare: Failed to clean up token metrics cache:', error)
     return { removed }
   }
 }
@@ -1060,10 +1060,10 @@ export function addMCPToIDE(
       }
 
       fs.writeFileSync(cursorConfigPath, JSON.stringify(newConfig, null, 2))
-      console.log(`MCP Guard: Created IDE config with ${mcpName}`)
+      console.log(`MCPflare: Created IDE config with ${mcpName}`)
       return { success: true, message: `Created IDE config with ${mcpName}` }
     } catch (error) {
-      console.error('MCP Guard: Failed to create config file:', error)
+      console.error('MCPflare: Failed to create config file:', error)
       return { success: false, message: 'Failed to create config directory' }
     }
   }
@@ -1080,7 +1080,7 @@ export function addMCPToIDE(
       message: `MCP "${mcpName}" already exists in IDE config`,
     }
   }
-  if (rawConfig._mcpguard_disabled?.[mcpName]) {
+  if (rawConfig._mcpflare_disabled?.[mcpName]) {
     return {
       success: false,
       message: `MCP "${mcpName}" already exists (currently guarded)`,
@@ -1094,7 +1094,7 @@ export function addMCPToIDE(
     return { success: false, message: 'Failed to write config file' }
   }
 
-  console.log(`MCP Guard: Added ${mcpName} to IDE config`)
+  console.log(`MCPflare: Added ${mcpName} to IDE config`)
   return { success: true, message: `Added ${mcpName} to IDE config` }
 }
 
@@ -1142,13 +1142,13 @@ export function deleteMCPFromIDE(
   }
 
   // Remove from disabled MCPs
-  if (rawConfig._mcpguard_disabled?.[mcpName]) {
-    delete rawConfig._mcpguard_disabled[mcpName]
+  if (rawConfig._mcpflare_disabled?.[mcpName]) {
+    delete rawConfig._mcpflare_disabled[mcpName]
     deleted = true
 
     // Clean up disabled section if empty
-    if (Object.keys(rawConfig._mcpguard_disabled).length === 0) {
-      delete rawConfig._mcpguard_disabled
+    if (Object.keys(rawConfig._mcpflare_disabled).length === 0) {
+      delete rawConfig._mcpflare_disabled
     }
   }
 
@@ -1166,6 +1166,6 @@ export function deleteMCPFromIDE(
   // Also invalidate the cache for this MCP
   invalidateMCPCache(mcpName)
 
-  console.log(`MCP Guard: Deleted ${mcpName} from IDE config`)
+  console.log(`MCPflare: Deleted ${mcpName} from IDE config`)
   return { success: true, message: `Deleted ${mcpName} from IDE config` }
 }

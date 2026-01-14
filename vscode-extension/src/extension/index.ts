@@ -1,28 +1,28 @@
 /**
- * MCP Guard - VS Code Extension
+ * MCPflare - VS Code Extension
  * 
  * Provides a graphical interface for configuring MCP servers
  * with security isolation settings. Bundles and auto-spawns the
- * mcpguard MCP server for transparent proxying.
+ * mcpflare MCP server for transparent proxying.
  */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
-import { MCPGuardWebviewProvider } from './webview-provider';
+import { MCPflareWebviewProvider } from './webview-provider';
 import { loadAllMCPServers } from './config-loader';
 
-let webviewProvider: MCPGuardWebviewProvider | undefined;
+let webviewProvider: MCPflareWebviewProvider | undefined;
 let mcpServerProcess: ChildProcess | undefined;
 
 /**
- * Get the path to the mcpguard server
+ * Get the path to the mcpflare server
  */
-function getMCPGuardServerPath(context: vscode.ExtensionContext): string {
+function getMCPflareServerPath(context: vscode.ExtensionContext): string {
   // In development, the server is in the parent directory's dist folder
   // In production, it will be bundled with the extension
   const devPath = path.join(context.extensionPath, '..', 'dist', 'server', 'index.js');
-  const prodPath = path.join(context.extensionPath, 'mcpguard-server', 'index.js');
+  const prodPath = path.join(context.extensionPath, 'mcpflare-server', 'index.js');
   
   // Check if we're in development (parent has dist folder)
   const fs = require('fs');
@@ -33,18 +33,18 @@ function getMCPGuardServerPath(context: vscode.ExtensionContext): string {
 }
 
 /**
- * Spawn the mcpguard MCP server as a child process
+ * Spawn the mcpflare MCP server as a child process
  */
-function spawnMCPGuardServer(context: vscode.ExtensionContext): ChildProcess | undefined {
-  const serverPath = getMCPGuardServerPath(context);
+function spawnMCPflareServer(context: vscode.ExtensionContext): ChildProcess | undefined {
+  const serverPath = getMCPflareServerPath(context);
   const fs = require('fs');
   
   if (!fs.existsSync(serverPath)) {
-    console.log(`MCP Guard: Server not found at ${serverPath}, skipping spawn`);
+    console.log(`MCPflare: Server not found at ${serverPath}, skipping spawn`);
     return undefined;
   }
 
-  console.log(`MCP Guard: Spawning server from ${serverPath}`);
+  console.log(`MCPflare: Spawning server from ${serverPath}`);
   
   const nodeExecutable = process.execPath; // Use the same Node.js that VS Code uses
   
@@ -53,26 +53,26 @@ function spawnMCPGuardServer(context: vscode.ExtensionContext): ChildProcess | u
     env: {
       ...process.env,
       // Ensure the server knows it's running from the extension
-      MCPGUARD_FROM_EXTENSION: 'true',
+      MCPFLARE_FROM_EXTENSION: 'true',
     },
     // Don't detach - we want the process to die when VS Code closes
     detached: false,
   });
 
   proc.stdout?.on('data', (data) => {
-    console.log(`MCP Guard Server: ${data.toString().trim()}`);
+    console.log(`MCPflare Server: ${data.toString().trim()}`);
   });
 
   proc.stderr?.on('data', (data) => {
-    console.error(`MCP Guard Server Error: ${data.toString().trim()}`);
+    console.error(`MCPflare Server Error: ${data.toString().trim()}`);
   });
 
   proc.on('error', (error) => {
-    console.error('MCP Guard: Failed to spawn server:', error.message);
+    console.error('MCPflare: Failed to spawn server:', error.message);
   });
 
   proc.on('exit', (code, signal) => {
-    console.log(`MCP Guard: Server exited with code ${code}, signal ${signal}`);
+    console.log(`MCPflare: Server exited with code ${code}, signal ${signal}`);
     mcpServerProcess = undefined;
   });
 
@@ -80,11 +80,11 @@ function spawnMCPGuardServer(context: vscode.ExtensionContext): ChildProcess | u
 }
 
 /**
- * Stop the mcpguard server if running
+ * Stop the mcpflare server if running
  */
-function stopMCPGuardServer(): void {
+function stopMCPflareServer(): void {
   if (mcpServerProcess) {
-    console.log('MCP Guard: Stopping server...');
+    console.log('MCPflare: Stopping server...');
     mcpServerProcess.kill('SIGTERM');
     mcpServerProcess = undefined;
   }
@@ -94,74 +94,74 @@ function stopMCPGuardServer(): void {
  * Extension activation
  */
 export function activate(context: vscode.ExtensionContext): void {
-  console.log('MCP Guard extension activated - build v2');
-  console.log('MCP Guard: Extension path:', context.extensionPath);
+  console.log('MCPflare extension activated - build v2');
+  console.log('MCPflare: Extension path:', context.extensionPath);
 
-  // Spawn the mcpguard MCP server
-  mcpServerProcess = spawnMCPGuardServer(context);
+  // Spawn the mcpflare MCP server
+  mcpServerProcess = spawnMCPflareServer(context);
   if (mcpServerProcess) {
-    console.log('MCP Guard: Server spawned successfully');
+    console.log('MCPflare: Server spawned successfully');
   }
 
   // Create the webview provider
-  webviewProvider = new MCPGuardWebviewProvider(context.extensionUri);
+  webviewProvider = new MCPflareWebviewProvider(context.extensionUri);
 
   // Register the webview provider
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      MCPGuardWebviewProvider.viewType,
+      MCPflareWebviewProvider.viewType,
       webviewProvider
     )
   );
 
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand('mcpguard.openSettings', () => {
-      vscode.commands.executeCommand('workbench.view.extension.mcpguard');
+    vscode.commands.registerCommand('mcpflare.openSettings', () => {
+      vscode.commands.executeCommand('workbench.view.extension.mcpflare');
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mcpguard.refreshMCPs', () => {
+    vscode.commands.registerCommand('mcpflare.refreshMCPs', () => {
       webviewProvider?.refresh();
-      vscode.window.showInformationMessage('MCP Guard: Refreshed MCP list');
+      vscode.window.showInformationMessage('MCPflare: Refreshed MCP list');
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mcpguard.importFromIDE', () => {
+    vscode.commands.registerCommand('mcpflare.importFromIDE', () => {
       webviewProvider?.refresh();
-      vscode.window.showInformationMessage('MCP Guard: Imported MCPs from IDE configurations');
+      vscode.window.showInformationMessage('MCPflare: Imported MCPs from IDE configurations');
     })
   );
 
   // Register cleanup on deactivation
   context.subscriptions.push({
-    dispose: () => stopMCPGuardServer()
+    dispose: () => stopMCPflareServer()
   });
 
   // Auto-import on activation - log what's found
   const mcps = loadAllMCPServers();
-  console.log(`MCP Guard: Found ${mcps.length} MCP server(s) on activation`);
+  console.log(`MCPflare: Found ${mcps.length} MCP server(s) on activation`);
   if (mcps.length > 0) {
-    console.log('MCP Guard: Detected servers:', mcps.map(m => `${m.name} (${m.source})`).join(', '));
+    console.log('MCPflare: Detected servers:', mcps.map(m => `${m.name} (${m.source})`).join(', '));
   } else {
-    console.log('MCP Guard: No MCP servers detected. Checked Claude, Copilot, and Cursor configs.');
+    console.log('MCPflare: No MCP servers detected. Checked Claude, Copilot, and Cursor configs.');
   }
 
   // Show welcome message on first activation (with more helpful info)
-  const hasShownWelcome = context.globalState.get('mcpguard.hasShownWelcome');
+  const hasShownWelcome = context.globalState.get('mcpflare.hasShownWelcome');
   if (!hasShownWelcome) {
     const message = mcps.length > 0
-      ? `MCP Guard found ${mcps.length} MCP server${mcps.length === 1 ? '' : 's'}. Click the shield icon to configure security settings.`
-      : 'MCP Guard is active. No MCP servers detected yet - check your IDE configuration.';
+      ? `MCPflare found ${mcps.length} MCP server${mcps.length === 1 ? '' : 's'}. Click the shield icon to configure security settings.`
+      : 'MCPflare is active. No MCP servers detected yet - check your IDE configuration.';
     
     vscode.window.showInformationMessage(message, 'Open Settings').then(selection => {
       if (selection === 'Open Settings') {
-        vscode.commands.executeCommand('workbench.view.extension.mcpguard');
+        vscode.commands.executeCommand('workbench.view.extension.mcpflare');
       }
     });
-    context.globalState.update('mcpguard.hasShownWelcome', true);
+    context.globalState.update('mcpflare.hasShownWelcome', true);
   }
 }
 
@@ -169,8 +169,8 @@ export function activate(context: vscode.ExtensionContext): void {
  * Extension deactivation
  */
 export function deactivate(): void {
-  console.log('MCP Guard extension deactivated');
-  stopMCPGuardServer();
+  console.log('MCPflare extension deactivated');
+  stopMCPflareServer();
 }
 
 

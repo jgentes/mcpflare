@@ -525,7 +525,7 @@ export class WorkerManager {
 
       client = new Client(
         {
-          name: 'mcpguard',
+          name: 'mcpflare',
           version: '0.1.0',
         },
         {
@@ -681,7 +681,7 @@ export class WorkerManager {
 
       client = new Client(
         {
-          name: 'mcpguard',
+          name: 'mcpflare',
           version: '0.1.0',
         },
         {
@@ -1402,7 +1402,7 @@ export class WorkerManager {
 
     const transport = new StreamableHTTPClientTransport(url, transportOptions)
     const client = new Client(
-      { name: 'mcpguard', version: '0.1.0' },
+      { name: 'mcpflare', version: '0.1.0' },
       { capabilities: {} },
     )
 
@@ -1472,7 +1472,7 @@ export class WorkerManager {
 
       const client = new Client(
         {
-          name: 'mcpguard',
+          name: 'mcpflare',
           version: '0.1.0',
         },
         {
@@ -1672,23 +1672,23 @@ export class WorkerManager {
     // IMPORTANT: The fetch wrapper is placed at MODULE LEVEL (not inside the fetch handler)
     // This ensures it runs before the Cloudflare runtime can freeze globalThis.fetch
     const modulePrelude = networkEnabled
-      ? '// MCPGuard: Fetch wrapper at module level to intercept before runtime freezes fetch\n' +
-        `const __mcpguardAllowedHosts = ${JSON.stringify(allowedHosts.join(','))};\n` +
-        `const __mcpguardAllowLocalhost = ${allowLocalhost ? '"true"' : '"false"'};\n` +
-        'const __mcpguardOriginalFetch = globalThis.fetch;\n' +
-        'const __mcpguardFetchWrapper = async (input, init) => {\n' +
+      ? '// MCPflare: Fetch wrapper at module level to intercept before runtime freezes fetch\n' +
+        `const __mcpflareAllowedHosts = ${JSON.stringify(allowedHosts.join(','))};\n` +
+        `const __mcpflareAllowLocalhost = ${allowLocalhost ? '"true"' : '"false"'};\n` +
+        'const __mcpflareOriginalFetch = globalThis.fetch;\n' +
+        'const __mcpflareFetchWrapper = async (input, init) => {\n' +
         '  const headers = new Headers(init?.headers || {});\n' +
-        '  headers.set("X-MCPGuard-Allowed-Hosts", __mcpguardAllowedHosts);\n' +
-        '  headers.set("X-MCPGuard-Allow-Localhost", __mcpguardAllowLocalhost);\n' +
-        '  const response = await __mcpguardOriginalFetch(input, { ...init, headers });\n' +
+        '  headers.set("X-MCPflare-Allowed-Hosts", __mcpflareAllowedHosts);\n' +
+        '  headers.set("X-MCPflare-Allow-Localhost", __mcpflareAllowLocalhost);\n' +
+        '  const response = await __mcpflareOriginalFetch(input, { ...init, headers });\n' +
         '  if (response.status === 403) {\n' +
         '    try {\n' +
         '      const body = await response.clone().json();\n' +
-        '      if (body.error && body.error.startsWith("MCPGuard network policy:")) {\n' +
+        '      if (body.error && body.error.startsWith("MCPflare network policy:")) {\n' +
         '        throw new Error(body.error);\n' +
         '      }\n' +
         '    } catch (e) {\n' +
-        '      if (e.message && e.message.startsWith("MCPGuard network policy:")) {\n' +
+        '      if (e.message && e.message.startsWith("MCPflare network policy:")) {\n' +
         '        throw e;\n' +
         '      }\n' +
         '    }\n' +
@@ -1696,7 +1696,7 @@ export class WorkerManager {
         '  return response;\n' +
         '};\n' +
         '// Override globalThis.fetch at module level\n' +
-        'globalThis.fetch = __mcpguardFetchWrapper;\n\n'
+        'globalThis.fetch = __mcpflareFetchWrapper;\n\n'
       : ''
 
     const workerScript =

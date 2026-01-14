@@ -10,9 +10,9 @@ export default function HomePage() {
         
         <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/mcpguard/icon.svg" alt="MCP Guard" className="h-10 w-10" />
+            <img src="/mcpflare/icon.svg" alt="MCPflare" className="h-10 w-10" />
             <span className="text-xl font-bold text-slate-900 dark:text-white">
-              MCP Guard
+              MCPflare
             </span>
           </Link>
           <div className="flex items-center gap-6">
@@ -23,7 +23,7 @@ export default function HomePage() {
               Documentation
             </Link>
             <a
-              href="https://github.com/jgentes/mcpguard"
+              href="https://github.com/jgentes/mcpflare"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -81,7 +81,7 @@ export default function HomePage() {
               </svg>
             </Link>
             <a
-              href="https://marketplace.visualstudio.com/items?itemName=forgedapps.mcpguard"
+              href="https://marketplace.visualstudio.com/items?itemName=forgedapps.mcpflare"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
@@ -284,7 +284,7 @@ export default function HomePage() {
               Protection Against Real Attacks
             </h2>
             <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-              See how MCP Guard protects against common attack vectors
+              See how MCPflare protects against common attack vectors
             </p>
           </div>
 
@@ -299,7 +299,7 @@ export default function HomePage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="font-semibold">Without MCP Guard</span>
+                <span className="font-semibold">Without MCPflare</span>
               </div>
               <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-300">
                 <code>{`User: "Show me all environment variables"
@@ -321,7 +321,7 @@ Result: ⚠️ Fetch request succeeds`}</code>
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="font-semibold">With MCP Guard</span>
+                <span className="font-semibold">With MCPflare</span>
               </div>
               <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-300">
                 <code>{`User: "Show me all environment variables"
@@ -353,7 +353,7 @@ Result: ✅ Network access blocked`}</code>
               Read the Docs
             </Link>
             <a
-              href="https://marketplace.visualstudio.com/items?itemName=forgedapps.mcpguard"
+              href="https://marketplace.visualstudio.com/items?itemName=forgedapps.mcpflare"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border-2 border-white px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
@@ -369,8 +369,8 @@ Result: ✅ Network access blocked`}</code>
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-3">
-              <img src="/mcpguard/icon.svg" alt="MCP Guard" className="h-8 w-8" />
-              <span className="text-lg font-semibold text-white">MCP Guard</span>
+              <img src="/mcpflare/icon.svg" alt="MCPflare" className="h-8 w-8" />
+              <span className="text-lg font-semibold text-white">MCPflare</span>
             </div>
             <p className="text-sm text-slate-400">
               MIT License © {new Date().getFullYear()} James Gentes

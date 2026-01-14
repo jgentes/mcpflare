@@ -36,7 +36,7 @@ export class MCPHandler {
   constructor() {
     this.server = new Server(
       {
-        name: 'mcpguard',
+        name: 'mcpflare',
         version: '0.1.0',
       },
       {
@@ -199,13 +199,13 @@ export class MCPHandler {
 
       // DO NOT eagerly load all MCP tools - this defeats token efficiency!
       // Instead, load schemas lazily when tools are actually called via transparent proxy
-      // This way, the IDE only sees MCPGuard's tools in the context window
+      // This way, the IDE only sees MCPflare's tools in the context window
       // Individual MCP tools are loaded on-demand when call_mcp is used or
       // when a namespaced tool (e.g., github::search_repositories) is called
       // await this.loadAllMCPTools() // DISABLED for efficiency
 
-      // Start with MCPGuard's own tools
-      const mcpGuardTools = [
+      // Start with MCPflare's own tools
+      const mcpflareTools = [
         {
           name: 'connect',
           description:
@@ -418,7 +418,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         {
           name: 'search_mcp_tools',
           description:
-            'Search and discover MCP servers configured in your IDE. Returns all configured MCPs (except mcpguard) with their status and available tools. Use this to find which MCPs are available before calling call_mcp. Implements the search_tools pattern for progressive disclosure - discover tools on-demand rather than loading all definitions upfront.',
+            'Search and discover MCP servers configured in your IDE. Returns all configured MCPs (except mcpflare) with their status and available tools. Use this to find which MCPs are available before calling call_mcp. Implements the search_tools pattern for progressive disclosure - discover tools on-demand rather than loading all definitions upfront.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -440,7 +440,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         {
           name: 'guard',
           description:
-            "Guard MCP servers by routing them through MCPGuard's secure isolation. This prevents the IDE from loading their tools into the context window unnecessarily, maximizing efficiency and ensuring all tool calls are protected. Can guard specific MCPs or all MCPs except mcpguard.",
+            "Guard MCP servers by routing them through MCPflare's secure isolation. This prevents the IDE from loading their tools into the context window unnecessarily, maximizing efficiency and ensuring all tool calls are protected. Can guard specific MCPs or all MCPs except mcpflare.",
           inputSchema: {
             type: 'object',
             properties: {
@@ -448,18 +448,18 @@ The code runs in an isolated Worker environment with no network access. All MCP 
                 type: 'array',
                 items: { type: 'string' },
                 description:
-                  'Array of MCP names to disable. If not provided or empty, disables all MCPs except mcpguard.',
+                  'Array of MCP names to disable. If not provided or empty, disables all MCPs except mcpflare.',
               },
             },
           },
         },
       ]
 
-      // Return only MCPGuard's own tools for efficiency
+      // Return only MCPflare's own tools for efficiency
       // Individual MCP tools are loaded lazily when:
       // 1. call_mcp is called with mcp_name (auto-connects that specific MCP)
       // 2. A namespaced tool is called (e.g., github::search_repositories) - connects that MCP on-demand
-      // This ensures the IDE context window only contains MCPGuard's tools, not all MCP tools
+      // This ensures the IDE context window only contains MCPflare's tools, not all MCP tools
       const aggregatedTools: Array<{
         name: string
         description: string
@@ -468,7 +468,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
           properties: Record<string, unknown>
           required?: string[]
         }
-      }> = [...mcpGuardTools]
+      }> = [...mcpflareTools]
 
       // Transparent proxy tools are NOT included in listTools for efficiency
       // They are loaded on-demand when actually called
@@ -476,11 +476,11 @@ The code runs in an isolated Worker environment with no network access. All MCP 
 
       logger.debug(
         {
-          mcpGuardToolsCount: mcpGuardTools.length,
+          mcpflareToolsCount: mcpflareTools.length,
           totalToolsCount: aggregatedTools.length,
           note: 'MCP tools are loaded lazily on-demand for efficiency',
         },
-        'Returning MCPGuard tools (MCP tools loaded lazily)',
+        'Returning MCPflare tools (MCP tools loaded lazily)',
       )
 
       return {
@@ -497,7 +497,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
       const guardedMCPs: string[] = []
 
       for (const [mcpName, entry] of configuredMCPs.entries()) {
-        // Only include guarded (disabled) MCPs - these are the ones routed through MCPGuard
+        // Only include guarded (disabled) MCPs - these are the ones routed through MCPflare
         if (entry.status === 'disabled') {
           guardedMCPs.push(mcpName)
         }
@@ -525,7 +525,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         if (prompts && prompts.length > 0) {
           for (const prompt of prompts) {
             // Add MCP namespace prefix using colon separator
-            // Format: "github:AssignCodingAgent" which Cursor will display as "mcpguard/github:AssignCodingAgent"
+            // Format: "github:AssignCodingAgent" which Cursor will display as "mcpflare/github:AssignCodingAgent"
             // This makes it clear which MCP the prompt originates from
             let namespacedName = prompt.name
             if (
@@ -588,7 +588,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
           )
         }
 
-        // Handle MCPGuard's own tools
+        // Handle MCPflare's own tools
         switch (name) {
           case 'connect':
             return await this.handleLoadMCP(args)
@@ -735,7 +735,7 @@ The code runs in an isolated Worker environment with no network access. All MCP 
       try {
         // Parse prompt name to extract MCP namespace
         // Format: "github:AssignCodingAgent" -> mcpName: "github", promptName: "AssignCodingAgent"
-        // Note: Cursor adds its own prefix, so user sees "mcpguard/github:AssignCodingAgent"
+        // Note: Cursor adds its own prefix, so user sees "mcpflare/github:AssignCodingAgent"
         const parts = name.split(':')
         if (parts.length < 2) {
           throw new MCPIsolateError(
@@ -775,14 +775,14 @@ The code runs in an isolated Worker environment with no network access. All MCP 
           // Only allow guarded MCPs through prompt proxy
           if (mcpEntry.status === 'active') {
             throw new MCPIsolateError(
-              `MCP "${mcpName}" is unguarded and should be called directly by the IDE, not through MCPGuard. To use MCPGuard, first guard this MCP in your IDE configuration.`,
+              `MCP "${mcpName}" is unguarded and should be called directly by the IDE, not through MCPflare. To use MCPflare, first guard this MCP in your IDE configuration.`,
               'UNGUARDED_MCP',
               400,
               {
                 mcp_name: mcpName,
                 status: 'active',
                 suggestion:
-                  'This MCP is not guarded. Either call its prompts directly, or guard it first using the VS Code extension or by moving it to _mcpguard_disabled in your IDE config.',
+                  'This MCP is not guarded. Either call its prompts directly, or guard it first using the VS Code extension or by moving it to _mcpflare_disabled in your IDE config.',
               },
             )
           }
@@ -1141,8 +1141,8 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         mcpId = existingInstance.mcp_id
         instance = existingInstance
       } else {
-        // Auto-load MCP from config - only guarded (disabled) MCPs should go through MCPGuard
-        // Unguarded MCPs are loaded by the IDE directly and the LLM can call them without MCPGuard
+        // Auto-load MCP from config - only guarded (disabled) MCPs should go through MCPflare
+        // Unguarded MCPs are loaded by the IDE directly and the LLM can call them without MCPflare
         const allMCPs = this.configManager.getAllConfiguredMCPs()
         const mcpEntry = allMCPs[validated.mcp_name]
 
@@ -1163,14 +1163,14 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         // Unguarded MCPs should be called directly by the LLM
         if (mcpEntry.status === 'active') {
           throw new MCPIsolateError(
-            `MCP "${validated.mcp_name}" is unguarded and should be called directly by the LLM, not through MCPGuard. To use MCPGuard isolation, first guard this MCP in your IDE configuration.`,
+            `MCP "${validated.mcp_name}" is unguarded and should be called directly by the LLM, not through MCPflare. To use MCPflare isolation, first guard this MCP in your IDE configuration.`,
             'UNGUARDED_MCP',
             400,
             {
               mcp_name: validated.mcp_name,
               status: 'active',
               suggestion:
-                'This MCP is not guarded. Either call its tools directly, or guard it first using the VS Code extension or by moving it to _mcpguard_disabled in your IDE config.',
+                'This MCP is not guarded. Either call its tools directly, or guard it first using the VS Code extension or by moving it to _mcpflare_disabled in your IDE config.',
             },
           )
         }
@@ -1488,12 +1488,12 @@ The code runs in an isolated Worker environment with no network access. All MCP 
         errorLower.includes('missing entry-point') ||
         errorLower.includes('entry-point')
       ) {
-        return 'Wrangler configuration error: Missing entry point. This is a fatal error - MCPGuard cannot execute code without a properly configured Worker runtime. Check that src/worker/runtime.ts exists and wrangler.toml is correctly configured.'
+        return 'Wrangler configuration error: Missing entry point. This is a fatal error - MCPflare cannot execute code without a properly configured Worker runtime. Check that src/worker/runtime.ts exists and wrangler.toml is correctly configured.'
       }
       if (errorLower.includes('exited with code')) {
-        return 'Wrangler execution failed. This is a fatal error - MCPGuard cannot execute code. Check the error_details for Wrangler stderr/stdout output to diagnose the issue. Common causes: missing dependencies, configuration errors, or Wrangler version incompatibility.'
+        return 'Wrangler execution failed. This is a fatal error - MCPflare cannot execute code. Check the error_details for Wrangler stderr/stdout output to diagnose the issue. Common causes: missing dependencies, configuration errors, or Wrangler version incompatibility.'
       }
-      return 'Wrangler execution error. This is a fatal error - MCPGuard cannot execute code. Check the error_details for detailed Wrangler output. Ensure Wrangler is installed (npx wrangler --version) and the Worker runtime is properly configured.'
+      return 'Wrangler execution error. This is a fatal error - MCPflare cannot execute code. Check the error_details for detailed Wrangler output. Ensure Wrangler is installed (npx wrangler --version) and the Worker runtime is properly configured.'
     }
 
     if (errorLower.includes('timeout')) {
@@ -1857,7 +1857,7 @@ console.log(JSON.stringify(result, null, 2));`
     const configPath = this.configManager.getCursorConfigPath()
     if (!configPath) {
       throw new MCPIsolateError(
-        'No IDE MCP configuration file found. Please add MCPGuard to your IDE config first.',
+        'No IDE MCP configuration file found. Please add MCPflare to your IDE config first.',
         'CONFIG_NOT_FOUND',
         404,
       )
@@ -1868,19 +1868,19 @@ console.log(JSON.stringify(result, null, 2));`
       disabled: string[]
       alreadyDisabled: string[]
       failed: string[]
-      mcpguardRestored: boolean
+      mcpflareRestored: boolean
     } = {
       disabled: [],
       alreadyDisabled: [],
       failed: [],
-      mcpguardRestored: false,
+      mcpflareRestored: false,
     }
 
     if (mcp_names && mcp_names.length > 0) {
       // Disable specific MCPs
       for (const mcpName of mcp_names) {
-        if (mcpName.toLowerCase() === 'mcpguard') {
-          continue // Skip mcpguard
+        if (mcpName.toLowerCase() === 'mcpflare') {
+          continue // Skip mcpflare
         }
 
         if (this.configManager.isMCPDisabled(mcpName)) {
@@ -1892,12 +1892,12 @@ console.log(JSON.stringify(result, null, 2));`
         }
       }
     } else {
-      // Disable all MCPs except mcpguard
-      const disableResult = this.configManager.disableAllExceptMCPGuard()
+      // Disable all MCPs except mcpflare
+      const disableResult = this.configManager.disableAllExceptMCPflare()
       result.disabled = disableResult.disabled
       result.alreadyDisabled = disableResult.alreadyDisabled
       result.failed = disableResult.failed
-      result.mcpguardRestored = disableResult.mcpguardRestored
+      result.mcpflareRestored = disableResult.mcpflareRestored
     }
 
     const response: {
@@ -1907,7 +1907,7 @@ console.log(JSON.stringify(result, null, 2));`
       disabled: string[]
       alreadyDisabled: string[]
       failed: string[]
-      mcpguardRestored: boolean
+      mcpflareRestored: boolean
       note?: string
     } = {
       success: true,
@@ -1916,7 +1916,7 @@ console.log(JSON.stringify(result, null, 2));`
       disabled: result.disabled,
       alreadyDisabled: result.alreadyDisabled,
       failed: result.failed,
-      mcpguardRestored: result.mcpguardRestored,
+      mcpflareRestored: result.mcpflareRestored,
     }
 
     if (result.disabled.length === 0 && result.alreadyDisabled.length === 0) {
@@ -1927,8 +1927,8 @@ console.log(JSON.stringify(result, null, 2));`
       response.note = `Some MCPs could not be disabled. They may not exist in the configuration.`
     }
 
-    if (result.mcpguardRestored) {
-      response.note = `${response.note ? `${response.note} ` : ''}MCPGuard was restored to active config.`
+    if (result.mcpflareRestored) {
+      response.note = `${response.note ? `${response.note} ` : ''}MCPflare was restored to active config.`
     }
 
     logger.info(
@@ -2201,7 +2201,7 @@ return result;`
         : {}
     const { query, detail_level = 'summary' } = typedArgs
 
-    // Get all configured MCPs (excluding mcpguard, including disabled ones for transparency)
+    // Get all configured MCPs (excluding mcpflare, including disabled ones for transparency)
     const guardedConfigs = this.configManager.getGuardedMCPConfigs()
     const loadedInstances = this.workerManager.listInstances()
     const disabledMCPs = this.configManager.getDisabledMCPs()
@@ -2315,7 +2315,7 @@ return result;`
       // Generate state-specific next_action
       let nextAction: string
       if (!result.is_guarded) {
-        nextAction = `This MCP is not guarded by MCPGuard. Your IDE loads it directly - use its tools directly (not via call_mcp).`
+        nextAction = `This MCP is not guarded by MCPflare. Your IDE loads it directly - use its tools directly (not via call_mcp).`
       } else if (result.status === 'loaded') {
         const toolHint =
           result.tool_names && result.tool_names.length > 0
@@ -2341,7 +2341,7 @@ return result;`
                 'INSTRUCTIONS FOR USING MCPs:\n' +
                 "1. Locate the MCP you need in the 'mcps' array below\n" +
                 "2. Check the 'is_guarded' field:\n" +
-                '   - If is_guarded=true: This MCP is protected by MCPGuard. Use call_mcp with mcp_name to access it securely\n' +
+                '   - If is_guarded=true: This MCP is protected by MCPflare. Use call_mcp with mcp_name to access it securely\n' +
                 '   - If is_guarded=false: This MCP is loaded directly by your IDE. Use its tools directly (not via call_mcp)\n' +
                 "3. For guarded MCPs, check 'status' field:\n" +
                 "   - If 'loaded': Call call_mcp immediately to execute tools\n" +
@@ -2356,7 +2356,7 @@ return result;`
                 .length,
               config_path: configPath,
               config_source: configSource,
-              note: `These MCPs are configured from your ${configSource} IDE config. Guarded MCPs (is_guarded=true) are protected by MCPGuard.`,
+              note: `These MCPs are configured from your ${configSource} IDE config. Guarded MCPs (is_guarded=true) are protected by MCPflare.`,
             },
             null,
             2,
@@ -2370,7 +2370,7 @@ return result;`
     const transport = new StdioServerTransport()
     await this.server.connect(transport)
 
-    logger.info('MCP Guard server started')
+    logger.info('MCPflare server started')
 
     // Graceful shutdown handler
     const shutdown = async () => {

@@ -1,12 +1,12 @@
 /**
- * Main App component for MCP Guard webview
+ * Main App component for MCPflare webview
  */
 
 import { useState } from 'react';
 import type React from 'react';
 import { useSettings, useMCPServers, useNotifications, useTokenSavings, useConnectionTest, postMessage } from './hooks';
 import { Header, MCPCard, EmptyState, Notification, Button, ShieldIcon, ShieldOffIcon, BeakerIcon, TestingTab, TokenSavingsBadge, ConnectionTestModal, AddMCPModal, PlusIcon } from './components';
-import type { MCPSecurityConfig, MCPGuardSettings, MCPConfigInput } from './types';
+import type { MCPSecurityConfig, MCPflareSettings, MCPConfigInput } from './types';
 
 export const App: React.FC = () => {
   const { settings, saveSettings, saveMCPConfig, isLoading: settingsLoading } = useSettings();
@@ -23,7 +23,7 @@ export const App: React.FC = () => {
   const isAssessingTokens = assessingMCPs.size > 0;
 
   const handleGlobalToggle = (enabled: boolean) => {
-    const newSettings: MCPGuardSettings = { ...settings, enabled };
+    const newSettings: MCPflareSettings = { ...settings, enabled };
     saveSettings(newSettings);
   };
 
@@ -226,7 +226,7 @@ export const App: React.FC = () => {
         >
           <ShieldOffIcon size={16} className={undefined} />
           <span style={{ fontSize: '13px', color: 'var(--error)', fontWeight: 500 }}>
-            MCP Guard is disabled — all MCPs have direct access
+            MCPflare is disabled — all MCPs have direct access
           </span>
         </div>
       )}
@@ -462,10 +462,10 @@ export const App: React.FC = () => {
       {/* Footer */}
       <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
         <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          MCP Guard v0.1.0 · 
+          MCPflare v0.1.0 · 
           <button
             type="button"
-            onClick={() => postMessage({ type: 'openMCPGuardDocs' })}
+            onClick={() => postMessage({ type: 'openMCPflareDocs' })}
             style={{ 
               color: 'var(--accent)', 
               marginLeft: '4px', 

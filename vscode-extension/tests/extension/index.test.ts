@@ -55,7 +55,7 @@ describe('extension/index', () => {
 
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalled();
       expect(vscode.window.registerWebviewViewProvider).toHaveBeenCalledWith(
-        'mcpguard.configPanel',
+        'mcpflare.configPanel',
         expect.anything()
       );
     });
@@ -64,7 +64,7 @@ describe('extension/index', () => {
       activate(mockContext as unknown as import('vscode').ExtensionContext);
 
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'mcpguard.openSettings',
+        'mcpflare.openSettings',
         expect.any(Function)
       );
     });
@@ -73,7 +73,7 @@ describe('extension/index', () => {
       activate(mockContext as unknown as import('vscode').ExtensionContext);
 
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'mcpguard.refreshMCPs',
+        'mcpflare.refreshMCPs',
         expect.any(Function)
       );
     });
@@ -82,7 +82,7 @@ describe('extension/index', () => {
       activate(mockContext as unknown as import('vscode').ExtensionContext);
 
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
-        'mcpguard.importFromIDE',
+        'mcpflare.importFromIDE',
         expect.any(Function)
       );
     });
@@ -101,7 +101,7 @@ describe('extension/index', () => {
 
       expect(vscode.window.showInformationMessage).toHaveBeenCalled();
       expect(mockContext.globalState.update).toHaveBeenCalledWith(
-        'mcpguard.hasShownWelcome',
+        'mcpflare.hasShownWelcome',
         true
       );
     });
@@ -117,7 +117,7 @@ describe('extension/index', () => {
 
       // globalState.update should not be called when hasShownWelcome is true
       expect(mockContext.globalState.update).not.toHaveBeenCalledWith(
-        'mcpguard.hasShownWelcome',
+        'mcpflare.hasShownWelcome',
         true
       );
     });
@@ -142,7 +142,7 @@ describe('extension/index', () => {
         // Find the openSettings command registration
         const calls = vi.mocked(vscode.commands.registerCommand).mock.calls;
         const openSettingsCall = calls.find(
-          (call) => call[0] === 'mcpguard.openSettings'
+          (call) => call[0] === 'mcpflare.openSettings'
         );
         
         expect(openSettingsCall).toBeDefined();
@@ -152,7 +152,7 @@ describe('extension/index', () => {
         handler();
 
         expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-          'workbench.view.extension.mcpguard'
+          'workbench.view.extension.mcpflare'
         );
       });
 
@@ -162,7 +162,7 @@ describe('extension/index', () => {
         // Find the refreshMCPs command registration
         const calls = vi.mocked(vscode.commands.registerCommand).mock.calls;
         const refreshCall = calls.find(
-          (call) => call[0] === 'mcpguard.refreshMCPs'
+          (call) => call[0] === 'mcpflare.refreshMCPs'
         );
         
         expect(refreshCall).toBeDefined();
@@ -172,7 +172,7 @@ describe('extension/index', () => {
         handler();
 
         expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-          'MCP Guard: Refreshed MCP list'
+          'MCPflare: Refreshed MCP list'
         );
       });
 
@@ -182,7 +182,7 @@ describe('extension/index', () => {
         // Find the importFromIDE command registration
         const calls = vi.mocked(vscode.commands.registerCommand).mock.calls;
         const importCall = calls.find(
-          (call) => call[0] === 'mcpguard.importFromIDE'
+          (call) => call[0] === 'mcpflare.importFromIDE'
         );
         
         expect(importCall).toBeDefined();
@@ -192,7 +192,7 @@ describe('extension/index', () => {
         handler();
 
         expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-          'MCP Guard: Imported MCPs from IDE configurations'
+          'MCPflare: Imported MCPs from IDE configurations'
         );
       });
     });

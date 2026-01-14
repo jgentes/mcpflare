@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCP Guard is a meta-MCP server that provides secure, isolated execution of Model Context Protocol (MCP) servers using Cloudflare Workers isolates and code mode execution. It acts as a wrapper around other MCP servers, enabling AI agents to execute TypeScript code that calls MCP tools, resulting in massive efficiency gains (50-90% token reduction) compared to traditional tool calling.
+MCPflare is a meta-MCP server that provides secure, isolated execution of Model Context Protocol (MCP) servers using Cloudflare Workers isolates and code mode execution. It acts as a wrapper around other MCP servers, enabling AI agents to execute TypeScript code that calls MCP tools, resulting in massive efficiency gains (50-90% token reduction) compared to traditional tool calling.
 
 **Key Architecture Concepts:**
 - **Code Mode Execution**: AI agents write TypeScript code that calls MCP tools, rather than making individual tool calls. This reduces context window usage dramatically.
@@ -87,7 +87,7 @@ npm run benchmark        # Run GitHub MCP comparison benchmark
 
 ### Service Bindings & Network Architecture
 
-**CRITICAL PRINCIPLE**: MCPGuard's core purpose is **isolation**. Dynamic workers MUST have `globalOutbound: null`. This is NOT negotiable.
+**CRITICAL PRINCIPLE**: MCPflare's core purpose is **isolation**. Dynamic workers MUST have `globalOutbound: null`. This is NOT negotiable.
 
 **Components**:
 - **MCPBridge Service Binding**: Provides `env.MCP.callTool(toolName, input)` for MCP tool access
@@ -100,7 +100,7 @@ npm run benchmark        # Run GitHub MCP comparison benchmark
 
 2. **Layer 2: Module-Level Fetch Wrapper** - When network enabled, `generateWorkerCode()` injects a wrapper that:
    - Uses `Object.defineProperty` to define `globalThis.fetch`
-   - Adds `X-MCPGuard-Allowed-Hosts` and `X-MCPGuard-Allow-Localhost` headers
+   - Adds `X-MCPflare-Allowed-Hosts` and `X-MCPflare-Allow-Localhost` headers
    - Delegates to `env.FETCH_PROXY.fetch()` Service Binding
 
 3. **Layer 3: FetchProxy Service Binding** - Runs in parent Worker (has network access):
@@ -181,9 +181,9 @@ Add to your IDE's MCP config:
 ```json
 {
   "mcpServers": {
-    "mcpguard": {
+    "mcpflare": {
       "command": "node",
-      "args": ["D:/mcpguard/dist/server/index.js"]
+      "args": ["D:/mcpflare/dist/server/index.js"]
     }
   }
 }

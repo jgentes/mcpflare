@@ -1,5 +1,5 @@
 /**
- * Webview Provider for MCP Guard Configuration Panel
+ * Webview Provider for MCPflare Configuration Panel
  */
 
 import * as fs from 'fs'
@@ -10,14 +10,14 @@ import {
   deleteMCPFromIDE,
   disableMCPInIDE,
   enableMCPInIDE,
-  ensureMCPGuardInConfig,
+  ensureMCPflareInConfig,
   getIDEConfigPath,
   getSettingsPath,
   invalidateMCPCache,
   isMCPDisabled,
   loadAllMCPServers,
   type MCPConfigInput,
-  removeMCPGuardFromConfig,
+  removeMCPflareFromConfig,
 } from './config-loader'
 import {
   assessMCPTokensWithError,
@@ -27,8 +27,8 @@ import {
 import type {
   AssessmentErrorsCache,
   ExtensionMessage,
-  MCPGuardSettings,
-  MCPGuardSettingsStored,
+  MCPflareSettings,
+  MCPflareSettingsStored,
   MCPSecurityConfig,
   MCPSecurityConfigStored,
   MCPServerInfo,
@@ -88,7 +88,7 @@ function buildSourceMap(
 function loadSettingsWithHydration(
   settingsPath: string,
   mcps?: Array<{ name: string; source: string }>,
-): MCPGuardSettings {
+): MCPflareSettings {
   if (!fs.existsSync(settingsPath)) {
     return {
       ...DEFAULT_SETTINGS,
@@ -98,7 +98,7 @@ function loadSettingsWithHydration(
 
   try {
     const content = fs.readFileSync(settingsPath, 'utf-8')
-    const storedSettings = JSON.parse(content) as MCPGuardSettingsStored
+    const storedSettings = JSON.parse(content) as MCPflareSettingsStored
 
     // Build source map for accurate hydration
     const sourceMap = mcps ? buildSourceMap(mcps) : null
@@ -126,9 +126,9 @@ function loadSettingsWithHydration(
  */
 function saveSettingsWithDehydration(
   settingsPath: string,
-  settings: MCPGuardSettings,
+  settings: MCPflareSettings,
 ): void {
-  const storedSettings: MCPGuardSettingsStored = {
+  const storedSettings: MCPflareSettingsStored = {
     enabled: settings.enabled,
     defaults: settings.defaults,
     mcpConfigs: settings.mcpConfigs.map(dehydrateConfig),
@@ -140,8 +140,8 @@ function saveSettingsWithDehydration(
   fs.writeFileSync(settingsPath, JSON.stringify(storedSettings, null, 2))
 }
 
-export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'mcpguard.configPanel'
+export class MCPflareWebviewProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'mcpflare.configPanel'
 
   private _view?: vscode.WebviewView
   private _extensionUri: vscode.Uri
@@ -150,13 +150,13 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
 
   constructor(extensionUri: vscode.Uri) {
     this._extensionUri = extensionUri
-    this._outputChannel = vscode.window.createOutputChannel('MCP Guard')
+    this._outputChannel = vscode.window.createOutputChannel('MCPflare')
   }
 
   private _log(message: string): void {
     const timestamp = new Date().toISOString()
     this._outputChannel.appendLine(`[${timestamp}] ${message}`)
-    console.log(`MCP Guard: ${message}`)
+    console.log(`MCPflare: ${message}`)
   }
 
   /**
@@ -213,10 +213,10 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
       this._updateBadge()
 
       // Log what we found for debugging
-      console.log(`MCP Guard: Auto-imported ${mcps.length} MCP server(s)`)
+      console.log(`MCPflare: Auto-imported ${mcps.length} MCP server(s)`)
       if (mcps.length > 0) {
         console.log(
-          'MCP Guard: Found servers:',
+          'MCPflare: Found servers:',
           mcps.map((m) => `${m.name} (${m.source})`).join(', '),
         )
       }
@@ -225,7 +225,7 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
       const cleanupResult = cleanupTokenMetricsCache()
       if (cleanupResult.removed.length > 0) {
         console.log(
-          `MCP Guard: Cleaned up stale cache entries: ${cleanupResult.removed.join(', ')}`,
+          `MCPflare: Cleaned up stale cache entries: ${cleanupResult.removed.join(', ')}`,
         )
       }
 
@@ -366,9 +366,9 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
         await this._sendMCPServers()
         break
 
-      case 'openMCPGuardDocs':
+      case 'openMCPflareDocs':
         await vscode.env.openExternal(
-          vscode.Uri.parse('https://github.com/mcpguard/mcpguard'),
+          vscode.Uri.parse('https://github.com/jgentes/mcpflare'),
         )
         break
 
@@ -775,7 +775,7 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
    * When the global 'enabled' toggle changes, update IDE config for all guarded MCPs
    * Note: isGuarded is NOT saved - it's derived from IDE config
    */
-  private async _saveSettings(settings: MCPGuardSettings): Promise<void> {
+  private async _saveSettings(settings: MCPflareSettings): Promise<void> {
     try {
       const mcps = loadAllMCPServers()
       const settingsPath = getSettingsPath()
@@ -798,38 +798,38 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
         )
 
         if (settings.enabled) {
-          // MCP Guard is now enabled - MCPs stay in their current state
-          // (guarded MCPs are already in _mcpguard_disabled)
-          // Ensure mcpguard is in the config
+          // MCPflare is now enabled - MCPs stay in their current state
+          // (guarded MCPs are already in _mcpflare_disabled)
+          // Ensure mcpflare is in the config
           const extensionPath = this._extensionUri.fsPath
-          ensureMCPGuardInConfig(extensionPath)
+          ensureMCPflareInConfig(extensionPath)
 
           this._postMessage({
             type: 'success',
-            message: `MCP Guard enabled - ${guardedMcps.length} MCP${guardedMcps.length === 1 ? '' : 's'} guarded`,
+            message: `MCPflare enabled - ${guardedMcps.length} MCP${guardedMcps.length === 1 ? '' : 's'} guarded`,
           })
         } else {
-          // MCP Guard is now disabled - restore all guarded MCPs to active in IDE config
+          // MCPflare is now disabled - restore all guarded MCPs to active in IDE config
           for (const config of guardedMcps) {
             // Use source-aware enable for each MCP
             const source = sourceMap.get(config.mcpName)
             const result = enableMCPInIDE(config.mcpName, source)
             if (result.success) {
               console.log(
-                `MCP Guard: ${config.mcpName} restored to active in IDE config${source ? ` (${source})` : ''}`,
+                `MCPflare: ${config.mcpName} restored to active in IDE config${source ? ` (${source})` : ''}`,
               )
             }
           }
 
-          // Also remove mcpguard itself from the IDE config since it's not needed
-          const removeResult = removeMCPGuardFromConfig()
+          // Also remove mcpflare itself from the IDE config since it's not needed
+          const removeResult = removeMCPflareFromConfig()
           if (removeResult.success) {
-            console.log('MCP Guard: Removed mcpguard server from IDE config')
+            console.log('MCPflare: Removed mcpflare server from IDE config')
           }
 
           this._postMessage({
             type: 'success',
-            message: `MCP Guard disabled - ${guardedMcps.length} MCP${guardedMcps.length === 1 ? '' : 's'} restored to direct access`,
+            message: `MCPflare disabled - ${guardedMcps.length} MCP${guardedMcps.length === 1 ? '' : 's'} restored to direct access`,
           })
         }
 
@@ -876,31 +876,31 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
         invalidateMCPCache(config.mcpName)
 
         if (isNowGuarded) {
-          // Disable MCP in IDE config (move to _mcpguard_disabled)
+          // Disable MCP in IDE config (move to _mcpflare_disabled)
           const result = disableMCPInIDE(config.mcpName, source)
           if (result.success) {
             console.log(
-              `MCP Guard: ${config.mcpName} disabled in IDE config${source ? ` (${source})` : ''}`,
+              `MCPflare: ${config.mcpName} disabled in IDE config${source ? ` (${source})` : ''}`,
             )
           } else {
             console.warn(
-              `MCP Guard: Failed to disable ${config.mcpName} in IDE: ${result.message}`,
+              `MCPflare: Failed to disable ${config.mcpName} in IDE: ${result.message}`,
             )
           }
 
-          // Also ensure mcpguard is in the config
+          // Also ensure mcpflare is in the config
           const extensionPath = this._extensionUri.fsPath
-          ensureMCPGuardInConfig(extensionPath)
+          ensureMCPflareInConfig(extensionPath)
         } else {
-          // Enable MCP in IDE config (restore from _mcpguard_disabled)
+          // Enable MCP in IDE config (restore from _mcpflare_disabled)
           const result = enableMCPInIDE(config.mcpName, source)
           if (result.success) {
             console.log(
-              `MCP Guard: ${config.mcpName} enabled in IDE config${source ? ` (${source})` : ''}`,
+              `MCPflare: ${config.mcpName} enabled in IDE config${source ? ` (${source})` : ''}`,
             )
           } else {
             console.warn(
-              `MCP Guard: Failed to enable ${config.mcpName} in IDE: ${result.message}`,
+              `MCPflare: Failed to enable ${config.mcpName} in IDE: ${result.message}`,
             )
           }
         }
@@ -1094,7 +1094,7 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     console.log(
-      `MCP Guard: Auto-assessing tokens for ${unassessedMCPs.length} MCP(s)...`,
+      `MCPflare: Auto-assessing tokens for ${unassessedMCPs.length} MCP(s)...`,
     )
 
     // Assess each MCP (limit to 3 concurrent for performance)
@@ -1195,7 +1195,7 @@ export class MCPGuardWebviewProvider implements vscode.WebviewViewProvider {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <title>MCP Guard</title>
+  <title>MCPflare</title>
   <style>
     :root {
       --bg-primary: var(--vscode-editor-background);

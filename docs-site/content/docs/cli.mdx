@@ -1,6 +1,6 @@
 ---
 title: CLI Usage
-description: Use MCP Guard from the command line for testing and development.
+description: Use MCPflare from the command line for testing and development.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -10,7 +10,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ```bash
 # Using npx (no installation required)
-npx mcpguard
+npx mcpflare
 
 # Or if installed locally
 npm run cli
@@ -20,23 +20,23 @@ You'll see the interactive prompt:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║              MCP Guard - Interactive CLI                  ║
+║              MCPflare - Interactive CLI                  ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.
 Type "exit" to quit.
 
-mcpguard>
+mcpflare>
 ```
 
 ## Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `status` | Show at-a-glance MCP Guard status (counts, token savings, quick actions) |
+| `status` | Show at-a-glance MCPflare status (counts, token savings, quick actions) |
 | `savings` | Detailed token savings analysis with per-MCP breakdown |
-| `guard <mcp>` | Enable MCPGuard protection for an MCP (use `--all` for all MCPs) |
-| `unguard <mcp>` | Disable MCPGuard protection for an MCP (use `--all` for all MCPs) |
+| `guard <mcp>` | Enable MCPflare protection for an MCP (use `--all` for all MCPs) |
+| `unguard <mcp>` | Disable MCPflare protection for an MCP (use `--all` for all MCPs) |
 | `network <mcp> on\|off` | Enable/disable Worker outbound network for a guarded MCP |
 | `allowhost <mcp> add\|remove <host>` | Add/remove an allowed host (e.g., `api.github.com`) |
 | `allowlocalhost <mcp> on\|off` | Allow/deny localhost access (`localhost`/`127.0.0.1`) |
@@ -58,31 +58,31 @@ mcpguard>
 
 ## Network Access Commands
 
-MCP Guard can enforce an outbound network policy for code executed inside Worker isolates. This is **disabled by default** and can be enabled per MCP using an allowlist.
+MCPflare can enforce an outbound network policy for code executed inside Worker isolates. This is **disabled by default** and can be enabled per MCP using an allowlist.
 
 <Callout type="info" title="Scope">
-  These commands affect code execution inside MCP Guard’s Worker isolate. They do not modify your IDE’s MCP server definitions.
+  These commands affect code execution inside MCPflare’s Worker isolate. They do not modify your IDE’s MCP server definitions.
 </Callout>
 
 ### Enable/Disable Network
 
 ```bash
-mcpguard> network github on
-mcpguard> network github off
+mcpflare> network github on
+mcpflare> network github off
 ```
 
 ### Allowlist Hosts
 
 ```bash
-mcpguard> allowhost github add api.github.com
-mcpguard> allowhost github remove api.github.com
+mcpflare> allowhost github add api.github.com
+mcpflare> allowhost github remove api.github.com
 ```
 
 ### Allow Localhost
 
 ```bash
-mcpguard> allowlocalhost github on
-mcpguard> allowlocalhost github off
+mcpflare> allowlocalhost github on
+mcpflare> allowlocalhost github off
 ```
 
 ## Common Workflows
@@ -90,7 +90,7 @@ mcpguard> allowlocalhost github off
 ### Quick Status Check
 
 ```bash
-mcpguard> status
+mcpflare> status
 ```
 
 Shows:
@@ -102,20 +102,20 @@ Shows:
 ### Protect All MCPs
 
 ```bash
-mcpguard> guard --all
+mcpflare> guard --all
 ```
 
-Enables MCPGuard protection for all discovered MCPs, maximizing token savings and security.
+Enables MCPflare protection for all discovered MCPs, maximizing token savings and security.
 
 ### View Token Savings
 
 ```bash
-mcpguard> savings
+mcpflare> savings
 ```
 
 Shows detailed breakdown of token savings per MCP, including:
 - Current token usage
-- Estimated savings with MCPGuard
+- Estimated savings with MCPflare
 - Percentage reduction
 
 ### Testing with GitHub MCP
@@ -125,13 +125,13 @@ Shows detailed breakdown of token savings per MCP, including:
 ### Start the CLI
 
 ```bash
-npx mcpguard
+npx mcpflare
 ```
 
 ### Load the GitHub MCP Server
 
 ```
-mcpguard> load
+mcpflare> load
 MCP name: github
 Command (e.g., npx): npx
 Args (comma-separated): -y,@modelcontextprotocol/server-github
@@ -143,7 +143,7 @@ Loading MCP server...
 ### Check What Was Loaded
 
 ```
-mcpguard> list
+mcpflare> list
 ```
 
 You'll see your loaded MCP server with its ID, status, and available tools.
@@ -151,7 +151,7 @@ You'll see your loaded MCP server with its ID, status, and available tools.
 ### Get the TypeScript API Schema
 
 ```
-mcpguard> schema
+mcpflare> schema
 ```
 
 Enter the MCP ID from the previous step. You'll see TypeScript API definitions generated from the MCP tools.
@@ -159,7 +159,7 @@ Enter the MCP ID from the previous step. You'll see TypeScript API definitions g
 ### Execute Code
 
 ```
-mcpguard> execute
+mcpflare> execute
 ```
 
 Enter the MCP ID and TypeScript code:
@@ -173,7 +173,7 @@ console.log(`Found ${repos.length} repositories`);
 ### View Metrics
 
 ```
-mcpguard> metrics
+mcpflare> metrics
 ```
 
 Shows:
@@ -185,7 +185,7 @@ Shows:
 ### Clean Up
 
 ```
-mcpguard> unload
+mcpflare> unload
 ```
 
 Enter the MCP ID to clean up resources.
@@ -243,7 +243,7 @@ console.log('Top 5:', repos.map(r => r.name).join(', '));
 For debugging, use the `-v` or `--verbose` flag:
 
 ```bash
-npx mcpguard --verbose
+npx mcpflare --verbose
 ```
 
 This shows detailed logs including:
@@ -270,10 +270,10 @@ LOG_LEVEL=debug
 
 ## Saved Configurations
 
-MCP Guard saves your MCP configurations for easy reuse:
+MCPflare saves your MCP configurations for easy reuse:
 
 ```
-mcpguard> saved
+mcpflare> saved
 ```
 
 Lists all saved configurations with:

@@ -26,10 +26,10 @@ export interface MCPTokenMetrics {
  * Token savings summary
  */
 export interface TokenSavingsSummary {
-  /** Total tokens that would be used without MCPGuard */
+  /** Total tokens that would be used without MCPflare */
   totalTokensWithoutGuard: number
-  /** Tokens used by MCPGuard itself (~500 for its tools) */
-  mcpGuardTokens: number
+  /** Tokens used by MCPflare itself (~500 for its tools) */
+  mcpflareTokens: number
   /** Net tokens saved */
   tokensSaved: number
   /** Number of MCPs with assessed token metrics */
@@ -58,10 +58,10 @@ function estimateTokens(chars: number): number {
 }
 
 /**
- * MCPGuard's own tools (approximate schema size)
+ * MCPflare's own tools (approximate schema size)
  * These tools are always loaded regardless of how many MCPs are guarded
  */
-export const MCPGUARD_BASELINE_TOKENS = 500
+export const MCPFLARE_BASELINE_TOKENS = 500
 
 /**
  * Default estimate for MCPs that can't be assessed
@@ -124,7 +124,7 @@ export async function assessCommandBasedMCP(
         params: {
           protocolVersion: '2024-11-05',
           capabilities: {},
-          clientInfo: { name: 'mcpguard-cli', version: '1.0.0' },
+          clientInfo: { name: 'mcpflare-cli', version: '1.0.0' },
         },
       }
 
@@ -249,12 +249,12 @@ export function calculateTokenSavings(
 
   const tokensSaved = Math.max(
     0,
-    totalTokensWithoutGuard - MCPGUARD_BASELINE_TOKENS,
+    totalTokensWithoutGuard - MCPFLARE_BASELINE_TOKENS,
   )
 
   return {
     totalTokensWithoutGuard,
-    mcpGuardTokens: MCPGUARD_BASELINE_TOKENS,
+    mcpflareTokens: MCPFLARE_BASELINE_TOKENS,
     tokensSaved,
     assessedMCPs,
     guardedMCPs,

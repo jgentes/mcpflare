@@ -1,9 +1,9 @@
 /**
- * React hooks for the MCP Guard webview
+ * React hooks for the MCPflare webview
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MCPGuardSettings, MCPServerInfo, ExtensionMessage, WebviewMessage, MCPSecurityConfig, TokenSavingsSummary, ConnectionTestResult } from './types';
+import type { MCPflareSettings, MCPServerInfo, ExtensionMessage, WebviewMessage, MCPSecurityConfig, TokenSavingsSummary, ConnectionTestResult } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
 // Get VS Code API (singleton)
@@ -20,7 +20,7 @@ export function postMessage(message: WebviewMessage): void {
  * Hook to manage settings state
  */
 export function useSettings() {
-  const [settings, setSettings] = useState<MCPGuardSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<MCPflareSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function useSettings() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const saveSettings = useCallback((newSettings: MCPGuardSettings) => {
+  const saveSettings = useCallback((newSettings: MCPflareSettings) => {
     setSettings(newSettings);
     postMessage({ type: 'saveSettings', data: newSettings });
   }, []);

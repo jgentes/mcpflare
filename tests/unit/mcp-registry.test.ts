@@ -16,12 +16,12 @@ import {
   toWorkerIsolationConfig,
   getIsolationConfigForMCP,
   getAllGuardedMCPs,
-  isMCPGuarded,
+  isMCPflareed,
   createDefaultConfig,
   upsertMCPConfig,
   removeMCPConfig,
   clearMCPSchemaCache,
-  type MCPGuardSettings,
+  type MCPflareSettings,
   type MCPSecurityConfig,
 } from '../../src/utils/mcp-registry.js'
 
@@ -99,7 +99,7 @@ describe('mcp-registry', () => {
     mockDirs.clear()
     mockDisabledMCPs.clear()
     mockAllConfiguredMCPs = {}
-    testSettingsPath = path.join(os.homedir(), '.mcpguard', 'settings.json')
+    testSettingsPath = path.join(os.homedir(), '.mcpflare', 'settings.json')
   })
 
   afterEach(() => {
@@ -112,13 +112,13 @@ describe('mcp-registry', () => {
   describe('getSettingsPath', () => {
     it('should return path to settings file', () => {
       const settingsPath = getSettingsPath()
-      expect(settingsPath).toContain('.mcpguard')
+      expect(settingsPath).toContain('.mcpflare')
       expect(settingsPath).toContain('settings.json')
     })
 
     it('should create directory if it does not exist', () => {
       getSettingsPath()
-      const configDir = path.join(os.homedir(), '.mcpguard')
+      const configDir = path.join(os.homedir(), '.mcpflare')
       expect(fs.mkdirSync).toHaveBeenCalledWith(configDir, { recursive: true })
     })
   })
@@ -132,7 +132,7 @@ describe('mcp-registry', () => {
     })
 
     it('should load settings from file when it exists', () => {
-      const testSettings: MCPGuardSettings = {
+      const testSettings: MCPflareSettings = {
         enabled: true,
         defaults: {
           network: { enabled: true, allowlist: ['example.com'], allowLocalhost: true },
@@ -159,7 +159,7 @@ describe('mcp-registry', () => {
 
   describe('saveSettings', () => {
     it('should save settings to file', () => {
-      const settings: MCPGuardSettings = {
+      const settings: MCPflareSettings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -279,8 +279,8 @@ describe('mcp-registry', () => {
   })
 
   describe('getIsolationConfigForMCP', () => {
-    it('should return undefined when MCP Guard is disabled', () => {
-      const settings: MCPGuardSettings = {
+    it('should return undefined when MCPflare is disabled', () => {
+      const settings: MCPflareSettings = {
         enabled: false,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -295,8 +295,8 @@ describe('mcp-registry', () => {
       expect(config).toBeUndefined()
     })
 
-    it('should return undefined when MCP is not guarded (not in _mcpguard_disabled)', () => {
-      const settings: MCPGuardSettings = {
+    it('should return undefined when MCP is not guarded (not in _mcpflare_disabled)', () => {
+      const settings: MCPflareSettings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -315,7 +315,7 @@ describe('mcp-registry', () => {
     })
 
     it('should return config with defaults when MCP is guarded but has no security config', () => {
-      const settings: MCPGuardSettings = {
+      const settings: MCPflareSettings = {
         enabled: true,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -325,7 +325,7 @@ describe('mcp-registry', () => {
         mcpConfigs: [], // No security config for this MCP
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up MCP as guarded (in _mcpguard_disabled)
+      // Set up MCP as guarded (in _mcpflare_disabled)
       mockDisabledMCPs.add('test-mcp')
       mockAllConfiguredMCPs = { 'test-mcp': {} }
 
@@ -337,7 +337,7 @@ describe('mcp-registry', () => {
       expect(config?.limits.cpuMs).toBe(30000)
     })
 
-    it('should return config when MCP is guarded (in _mcpguard_disabled)', () => {
+    it('should return config when MCP is guarded (in _mcpflare_disabled)', () => {
       // Note: isGuarded is NOT stored - stored config doesn't have isGuarded field
       const storedConfig = {
         id: 'test-id',
@@ -358,7 +358,7 @@ describe('mcp-registry', () => {
         mcpConfigs: [storedConfig],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up MCP as guarded (in _mcpguard_disabled)
+      // Set up MCP as guarded (in _mcpflare_disabled)
       mockDisabledMCPs.add('test-mcp')
       mockAllConfiguredMCPs = { 'test-mcp': {} }
 
@@ -370,8 +370,8 @@ describe('mcp-registry', () => {
   })
 
   describe('getAllGuardedMCPs', () => {
-    it('should return empty map when MCP Guard is disabled', () => {
-      const settings: MCPGuardSettings = {
+    it('should return empty map when MCPflare is disabled', () => {
+      const settings: MCPflareSettings = {
         enabled: false,
         defaults: {
           network: { enabled: false, allowlist: [], allowLocalhost: false },
@@ -381,14 +381,14 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Even if an MCP is disabled in IDE config, should return empty when MCP Guard is disabled
+      // Even if an MCP is disabled in IDE config, should return empty when MCPflare is disabled
       mockDisabledMCPs.add('test-mcp')
 
       const configs = getAllGuardedMCPs()
       expect(configs.size).toBe(0)
     })
 
-    it('should return only guarded MCPs (from IDE config _mcpguard_disabled)', () => {
+    it('should return only guarded MCPs (from IDE config _mcpflare_disabled)', () => {
       // Note: isGuarded is NOT stored - it's derived from IDE config
       const guardedConfig = {
         id: 'guarded-id',
@@ -416,7 +416,7 @@ describe('mcp-registry', () => {
         mcpConfigs: [guardedConfig, unguardedConfig],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up guarded MCP (in _mcpguard_disabled)
+      // Set up guarded MCP (in _mcpflare_disabled)
       mockDisabledMCPs.add('guarded-mcp')
       // unguarded-mcp is NOT in mockDisabledMCPs
 
@@ -437,7 +437,7 @@ describe('mcp-registry', () => {
         mcpConfigs: [], // No security configs
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up guarded MCP (in _mcpguard_disabled)
+      // Set up guarded MCP (in _mcpflare_disabled)
       mockDisabledMCPs.add('guarded-mcp')
 
       const configs = getAllGuardedMCPs()
@@ -448,8 +448,8 @@ describe('mcp-registry', () => {
     })
   })
 
-  describe('isMCPGuarded', () => {
-    it('should return false when MCP Guard is disabled', () => {
+  describe('isMCPflareed', () => {
+    it('should return false when MCPflare is disabled', () => {
       const settings = {
         enabled: false,
         defaults: {
@@ -460,13 +460,13 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Even if MCP is in _mcpguard_disabled, should return false when Guard is disabled
+      // Even if MCP is in _mcpflare_disabled, should return false when Guard is disabled
       mockDisabledMCPs.add('test-mcp')
 
-      expect(isMCPGuarded('test-mcp')).toBe(false)
+      expect(isMCPflareed('test-mcp')).toBe(false)
     })
 
-    it('should return false when MCP is not guarded (not in _mcpguard_disabled)', () => {
+    it('should return false when MCP is not guarded (not in _mcpflare_disabled)', () => {
       const settings = {
         enabled: true,
         defaults: {
@@ -479,10 +479,10 @@ describe('mcp-registry', () => {
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
       // MCP is NOT in mockDisabledMCPs
 
-      expect(isMCPGuarded('test-mcp')).toBe(false)
+      expect(isMCPflareed('test-mcp')).toBe(false)
     })
 
-    it('should return true when MCP is guarded (in _mcpguard_disabled)', () => {
+    it('should return true when MCP is guarded (in _mcpflare_disabled)', () => {
       const settings = {
         enabled: true,
         defaults: {
@@ -493,10 +493,10 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up MCP as guarded (in _mcpguard_disabled)
+      // Set up MCP as guarded (in _mcpflare_disabled)
       mockDisabledMCPs.add('test-mcp')
 
-      expect(isMCPGuarded('test-mcp')).toBe(true)
+      expect(isMCPflareed('test-mcp')).toBe(true)
     })
   })
 
@@ -537,7 +537,7 @@ describe('mcp-registry', () => {
         mcpConfigs: [],
       }
       mockFileSystem.set(testSettingsPath, JSON.stringify(settings))
-      // Set up MCP as guarded (in _mcpguard_disabled)
+      // Set up MCP as guarded (in _mcpflare_disabled)
       mockDisabledMCPs.add('test-mcp')
 
       const config = createDefaultConfig('test-mcp')

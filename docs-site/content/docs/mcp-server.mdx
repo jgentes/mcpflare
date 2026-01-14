@@ -1,6 +1,6 @@
 ---
 title: MCP Server Mode
-description: Using MCP Guard as an MCP server for AI agents.
+description: Using MCPflare as an MCP server for AI agents.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 ## Configuration
 
-Add MCP Guard to your IDE's MCP configuration:
+Add MCPflare to your IDE's MCP configuration:
 
 <Tabs items={['Claude Code', 'GitHub Copilot', 'Cursor']}>
   <Tab value="Claude Code">
@@ -17,9 +17,9 @@ Add MCP Guard to your IDE's MCP configuration:
     ```json
     {
       "mcpServers": {
-        "mcpguard": {
+        "mcpflare": {
           "command": "npx",
-          "args": ["-y", "mcpguard"]
+          "args": ["-y", "mcpflare"]
         }
       }
     }
@@ -31,9 +31,9 @@ Add MCP Guard to your IDE's MCP configuration:
     ```json
     {
       "mcpServers": {
-        "mcpguard": {
+        "mcpflare": {
           "command": "npx",
-          "args": ["-y", "mcpguard"]
+          "args": ["-y", "mcpflare"]
         }
       }
     }
@@ -45,9 +45,9 @@ Add MCP Guard to your IDE's MCP configuration:
     ```json
     {
       "mcpServers": {
-        "mcpguard": {
+        "mcpflare": {
           "command": "npx",
-          "args": ["-y", "mcpguard"]
+          "args": ["-y", "mcpflare"]
         }
       }
     }
@@ -59,7 +59,7 @@ Add MCP Guard to your IDE's MCP configuration:
 
 ### Transparent Proxy Tools
 
-When MCPGuard discovers your other MCPs, their tools become available with namespaced names:
+When MCPflare discovers your other MCPs, their tools become available with namespaced names:
 
 ```
 github::search_repositories
@@ -74,28 +74,28 @@ weather::get_forecast
 
 ### MCP Prompts Support
 
-MCPGuard also supports **MCP Prompts** - pre-defined message templates that appear as slash commands in your IDE (e.g., `/mcpguard/github:AssignCodingAgent`).
+MCPflare also supports **MCP Prompts** - pre-defined message templates that appear as slash commands in your IDE (e.g., `/mcpflare/github:AssignCodingAgent`).
 
 **What are prompts?**
 Prompts are read-only templates that return messages to inject into the chat context. Unlike tools (which execute actions), prompts simply provide pre-formatted text, making them useful for common workflows like "assign a coding agent to this issue" or "create a fix workflow."
 
 **Why don't prompts need worker isolation?**
-Prompts don't execute any code - they just return pre-defined messages. This makes them safe by design, so MCPGuard proxies them directly to the underlying MCP without the overhead of worker isolation. Only tools that execute actions require the security of worker isolates.
+Prompts don't execute any code - they just return pre-defined messages. This makes them safe by design, so MCPflare proxies them directly to the underlying MCP without the overhead of worker isolation. Only tools that execute actions require the security of worker isolates.
 
 **Example prompts:**
 ```
-mcpguard/github:AssignCodingAgent
-mcpguard/github:issue_to_fix_workflow
+mcpflare/github:AssignCodingAgent
+mcpflare/github:issue_to_fix_workflow
 ```
 
-The `mcpguard/github:` prefix shows these are GitHub MCP prompts routed through MCPGuard's transparent proxy.
+The `mcpflare/github:` prefix shows these are GitHub MCP prompts routed through MCPflare's transparent proxy.
 
-### MCPGuard Management Tools
+### MCPflare Management Tools
 
 | Tool | Description |
 |------|-------------|
 | `call_mcp` | Call MCP tools by running TypeScript code in a secure sandbox (auto-connects MCPs if needed) |
-| `guard` | Guard MCP servers by routing them through MCPGuard's secure isolation |
+| `guard` | Guard MCP servers by routing them through MCPflare's secure isolation |
 | `search_mcp_tools` | Discover which MCPs are configured in your IDE |
 | `connect` | Manually connect to an MCP server |
 | `list_available_mcps` | List all currently connected MCP servers |
@@ -107,7 +107,7 @@ The `mcpguard/github:` prefix shows these are GitHub MCP prompts routed through 
 
 ## Transparent Proxy Mode
 
-By default, MCPGuard operates in **transparent proxy mode**:
+By default, MCPflare operates in **transparent proxy mode**:
 
 1. **Discovers** all MCPs configured in your IDE (even disabled ones)
 2. **Lazy-loads** tool schemas only when tools are actually called
@@ -115,14 +115,14 @@ By default, MCPGuard operates in **transparent proxy mode**:
 4. **Auto-loads** MCPs when their tools are first used
 
 <Callout type="info" title="No Config Changes Needed">
-  Once MCPGuard is running, all your existing MCP tool calls automatically go through secure isolation. The AI doesn't need to know about the isolation layer.
+  Once MCPflare is running, all your existing MCP tool calls automatically go through secure isolation. The AI doesn't need to know about the isolation layer.
 </Callout>
 
 ### Example Flow
 
 When the AI calls `github::search_repositories`:
 
-1. MCPGuard intercepts the namespaced call
+1. MCPflare intercepts the namespaced call
 2. If GitHub MCP isn't loaded, it's automatically loaded
 3. The call executes in a secure Worker isolate
 4. Results return to the AI transparently
@@ -157,9 +157,9 @@ Then configure your AI agent to use the local server:
 ```json
 {
   "mcpServers": {
-    "mcpguard": {
+    "mcpflare": {
       "command": "node",
-      "args": ["/path/to/mcpguard/dist/server/index.js"]
+      "args": ["/path/to/mcpflare/dist/server/index.js"]
     }
   }
 }
@@ -174,9 +174,9 @@ For maximum efficiency and security:
 ```json
 {
   "mcpServers": {
-    "mcpguard": {
+    "mcpflare": {
       "command": "npx",
-      "args": ["-y", "mcpguard"]
+      "args": ["-y", "mcpflare"]
     },
     "github": {
       "disabled": true,
@@ -187,7 +187,7 @@ For maximum efficiency and security:
 }
 ```
 
-- MCPGuard still discovers disabled MCPs
+- MCPflare still discovers disabled MCPs
 - Tool calls route through secure isolation
 - No duplicate tool loading in context window
 

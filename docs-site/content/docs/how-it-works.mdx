@@ -1,6 +1,6 @@
 ---
 title: How It Works
-description: Understanding MCP Guard's security architecture and code execution flow.
+description: Understanding MCPflare's security architecture and code execution flow.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -12,7 +12,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 │                          Your IDE (Cursor, Claude Code, etc.)        │
 │                                                                      │
 │  ┌──────────────────┐    ┌─────────────────────────────────────┐   │
-│  │   AI Agent       │───▶│         MCP Guard Server            │   │
+│  │   AI Agent       │───▶│         MCPflare Server            │   │
 │  │                  │    │  ┌─────────────────────────────┐    │   │
 │  │  Generates code  │    │  │   Code Validation Layer     │    │   │
 │  │  to call MCP     │    │  │   • Blocks eval(), require() │    │   │
@@ -43,7 +43,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ### Layer 1: Code Validation (Pre-Execution)
 
-Before any code runs, MCP Guard validates it for dangerous patterns:
+Before any code runs, MCPflare validates it for dangerous patterns:
 
 ```typescript
 // BLOCKED patterns:
@@ -90,7 +90,7 @@ By default, the isolate has **zero network capability**. It cannot:
 
 2. **Layer 2: Module-Level Fetch Wrapper** - When network enabled, `generateWorkerCode()` injects a wrapper that:
    - Uses `Object.defineProperty` to define `globalThis.fetch`
-   - Adds `X-MCPGuard-Allowed-Hosts` and `X-MCPGuard-Allow-Localhost` headers
+   - Adds `X-MCPflare-Allowed-Hosts` and `X-MCPflare-Allow-Localhost` headers
    - Delegates to `env.FETCH_PROXY.fetch()` Service Binding
 
 3. **Layer 3: FetchProxy Service Binding** - Runs in parent Worker (has network access):
@@ -98,7 +98,7 @@ By default, the isolate has **zero network capability**. It cannot:
    - Enforces rules (exact match, wildcard `*.github.com`, localhost blocking)
    - Returns 403 JSON error if blocked, otherwise proxies via parent's `fetch()`
 
-If you enable Network Access for a specific guarded MCP, MCP Guard uses this three-layer approach to allow controlled `fetch()` while enforcing a **host allowlist** (and optional localhost access).
+If you enable Network Access for a specific guarded MCP, MCPflare uses this three-layer approach to allow controlled `fetch()` while enforcing a **host allowlist** (and optional localhost access).
 
 ### Layer 4: Binding-Based Access Control
 
@@ -115,7 +115,7 @@ await mcp.search_repositories({ query: 'cloudflare' })
 ### Layer 5: Credential Isolation
 
 - API keys are **never exposed** to the isolate
-- Credentials are managed by the MCP Guard server
+- Credentials are managed by the MCPflare server
 - MCP bindings handle authentication transparently
 - Even if code tried to access credentials, they don't exist in scope
 
@@ -127,11 +127,11 @@ await mcp.search_repositories({ query: 'cloudflare' })
 
 1. **User Request**: AI calls `call_mcp` with TypeScript code
 
-2. **Validation**: MCP Guard validates code for dangerous patterns
+2. **Validation**: MCPflare validates code for dangerous patterns
    - If blocked patterns found → Error returned immediately
    - If safe → Continue to execution
 
-3. **Worker Generation**: MCP Guard generates a Worker script containing:
+3. **Worker Generation**: MCPflare generates a Worker script containing:
    - User code embedded directly
    - MCP binding stubs (functions that call `env.MCP.callTool()`)
    - Console output capture
@@ -165,7 +165,7 @@ await mcp.search_repositories({ query: 'cloudflare' })
 
 ## Service Bindings Architecture
 
-The key to MCP Guard's security is the **Service Binding** pattern:
+The key to MCPflare's security is the **Service Binding** pattern:
 
 ```
 ┌─────────────────────────────────┐
@@ -227,7 +227,7 @@ AI → MCP Server → Direct access to everything
                   • System ⚠️
 ```
 
-### MCP Guard (Secure)
+### MCPflare (Secure)
 
 ```
 AI → Code → Validation → Isolate → Service Binding → MCP
@@ -246,7 +246,7 @@ The isolation boundary ensures that even if the AI generates malicious code:
 ### OAuth MCPs Cannot Be Guarded
 
 <Callout type="warning" title="Important Limitation">
-  MCP servers that require OAuth authentication cannot be guarded by MCP Guard.
+  MCP servers that require OAuth authentication cannot be guarded by MCPflare.
 </Callout>
 
 **Why?** OAuth authentication creates a trust relationship between the IDE and the MCP provider:
@@ -267,14 +267,14 @@ The isolation boundary ensures that even if the AI generates malicious code:
 └─────────────────┘
 ```
 
-When MCP Guard intercepts communication:
+When MCPflare intercepts communication:
 - It cannot access the IDE's OAuth tokens
 - The MCP server rejects requests without valid tokens
-- Re-authentication through MCP Guard would require client registration with every OAuth provider
+- Re-authentication through MCPflare would require client registration with every OAuth provider
 
-**Solution**: Use OAuth MCPs directly through your IDE without guarding. MCP Guard detects OAuth requirements and displays a "Cannot Guard" indicator.
+**Solution**: Use OAuth MCPs directly through your IDE without guarding. MCPflare detects OAuth requirements and displays a "Cannot Guard" indicator.
 
-**MCPs that work with MCP Guard**:
+**MCPs that work with MCPflare**:
 - API key authenticated MCPs (GitHub with PAT, etc.)
 - Command-based local MCPs (filesystem, git, etc.)
 - URL-based MCPs with header authentication

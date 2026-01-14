@@ -1,4 +1,4 @@
-# MCP Guard
+# MCPflare
 
 Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.
 
@@ -8,7 +8,7 @@ Use local MCP servers securely with zero-trust isolation while reducing context 
 2. Your MCP servers are auto-imported from Claude, Cursor, and Copilot configs
 3. Toggle protection on for any MCP you want to secure
 
-> **Tip:** Use `Ctrl+Shift+P` → "MCP Guard: Open Settings" to open the panel anytime.
+> **Tip:** Use `Ctrl+Shift+P` → "MCPflare: Open Settings" to open the panel anytime.
 
 ## Features
 
@@ -20,7 +20,7 @@ Use local MCP servers securely with zero-trust isolation while reducing context 
 
 ## How It Works
 
-1. Click the **shield icon** in the activity bar to open MCP Guard
+1. Click the **shield icon** in the activity bar to open MCPflare
 2. Your MCP servers are automatically discovered from IDE configurations
 3. Toggle **guard protection** on for any MCP you want to isolate
 4. Configure network, file system, and resource settings as needed
@@ -53,7 +53,7 @@ Use local MCP servers securely with zero-trust isolation while reducing context 
 
 ## Security
 
-MCP Guard uses Cloudflare Workers isolates for execution:
+MCPflare uses Cloudflare Workers isolates for execution:
 
 - **Network Isolation**: All outbound access blocked by default
 - **Process Isolation**: Each execution in a fresh isolate
@@ -61,11 +61,11 @@ MCP Guard uses Cloudflare Workers isolates for execution:
 
 ## Commands
 
-- `MCP Guard: Open Settings` - Open the configuration panel
-- `MCP Guard: Refresh MCP List` - Re-scan for MCP servers
-- `MCP Guard: Import from IDE Config` - Import MCP configurations
+- `MCPflare: Open Settings` - Open the configuration panel
+- `MCPflare: Refresh MCP List` - Re-scan for MCP servers
+- `MCPflare: Import from IDE Config` - Import MCP configurations
 
 ## Support
 
-- [Documentation](https://github.com/mcpguard/mcpguard)
-- [Report Issues](https://github.com/mcpguard/mcpguard/issues)
+- [Documentation](https://github.com/mcpflare/mcpflare)
+- [Report Issues](https://github.com/mcpflare/mcpflare/issues)

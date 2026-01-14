@@ -1,12 +1,12 @@
 {
-  "name": "mcpguard",
+  "name": "mcpflare",
   "version": "0.2.0",
   "description": "Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.",
   "type": "module",
   "main": "dist/server/index.js",
   "types": "dist/server/index.d.ts",
   "bin": {
-    "mcpguard": "dist/cli/index.js"
+    "mcpflare": "dist/cli/index.js"
   },
   "scripts": {
     "dev": "tsx src/server/index.ts",
@@ -40,12 +40,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jgentes/mcpguard.git"
+    "url": "https://github.com/jgentes/mcpflare.git"
   },
   "bugs": {
-    "url": "https://github.com/jgentes/mcpguard/issues"
+    "url": "https://github.com/jgentes/mcpflare/issues"
   },
-  "homepage": "https://github.com/jgentes/mcpguard#readme",
+  "homepage": "https://github.com/jgentes/mcpflare#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2",
     "dotenv": "^16.3.1",

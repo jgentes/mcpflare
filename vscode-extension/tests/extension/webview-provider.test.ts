@@ -8,7 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { addMockFile, getMockFileContent, resetMockFs } from '../setup';
 import { getSettingsPath } from '../../src/extension/config-loader';
-import type { MCPGuardSettings, MCPSecurityConfig, WebviewMessage } from '../../src/extension/types';
+import type { MCPflareSettings, MCPSecurityConfig, WebviewMessage } from '../../src/extension/types';
 import { DEFAULT_SETTINGS } from '../../src/extension/types';
 
 // Helper to get test config paths
@@ -51,16 +51,16 @@ const createMockWebviewView = () => {
     onDidDispose: vi.fn(() => ({ dispose: vi.fn() })),
     onDidChangeVisibility: vi.fn(() => ({ dispose: vi.fn() })),
     visible: true,
-    viewType: 'mcpguard.configPanel',
+    viewType: 'mcpflare.configPanel',
     show: vi.fn(),
   };
 };
 
 // Import after mocks are set up
-import { MCPGuardWebviewProvider } from '../../src/extension/webview-provider';
+import { MCPflareWebviewProvider } from '../../src/extension/webview-provider';
 
-describe('MCPGuardWebviewProvider', () => {
-  let provider: MCPGuardWebviewProvider;
+describe('MCPflareWebviewProvider', () => {
+  let provider: MCPflareWebviewProvider;
   let mockExtensionUri: { fsPath: string; toString: () => string };
 
   beforeEach(() => {
@@ -72,12 +72,12 @@ describe('MCPGuardWebviewProvider', () => {
       toString: () => '/mock/extension/path',
     };
     
-    provider = new MCPGuardWebviewProvider(mockExtensionUri as unknown as import('vscode').Uri);
+    provider = new MCPflareWebviewProvider(mockExtensionUri as unknown as import('vscode').Uri);
   });
 
   describe('static properties', () => {
     it('should have correct viewType', () => {
-      expect(MCPGuardWebviewProvider.viewType).toBe('mcpguard.configPanel');
+      expect(MCPflareWebviewProvider.viewType).toBe('mcpflare.configPanel');
     });
   });
 
@@ -105,7 +105,7 @@ describe('MCPGuardWebviewProvider', () => {
 
       expect(mockView.webview.html).toContain('<!DOCTYPE html>');
       expect(mockView.webview.html).toContain('<div id="root">');
-      expect(mockView.webview.html).toContain('MCP Guard');
+      expect(mockView.webview.html).toContain('MCPflare');
       expect(mockView.webview.html).toContain('Content-Security-Policy');
     });
 
@@ -154,7 +154,7 @@ describe('MCPGuardWebviewProvider', () => {
 
       it('should send stored settings when file exists', async () => {
         const settingsPath = getSettingsPath();
-        const customSettings: MCPGuardSettings = {
+        const customSettings: MCPflareSettings = {
           enabled: false,
           defaults: DEFAULT_SETTINGS.defaults,
           mcpConfigs: [],
@@ -243,7 +243,7 @@ describe('MCPGuardWebviewProvider', () => {
 
     describe('saveSettings message', () => {
       it('should save settings to file', async () => {
-        const newSettings: MCPGuardSettings = {
+        const newSettings: MCPflareSettings = {
           enabled: true,
           defaults: DEFAULT_SETTINGS.defaults,
           mcpConfigs: [],
@@ -262,7 +262,7 @@ describe('MCPGuardWebviewProvider', () => {
       it('should handle global enabled state change', async () => {
         // Set up initial settings with a guarded MCP
         const settingsPath = getSettingsPath();
-        const initialSettings: MCPGuardSettings = {
+        const initialSettings: MCPflareSettings = {
           enabled: true,
           defaults: DEFAULT_SETTINGS.defaults,
           mcpConfigs: [{
@@ -281,7 +281,7 @@ describe('MCPGuardWebviewProvider', () => {
           'test-mcp': { command: 'node' },
         }));
 
-        // Disable MCP Guard globally
+        // Disable MCPflare globally
         const newSettings = { ...initialSettings, enabled: false };
         await messageHandler({ type: 'saveSettings', data: newSettings });
 
@@ -545,7 +545,7 @@ describe('getNonce', () => {
   it('should generate unique nonces', () => {
     // We can't directly test the private getNonce function,
     // but we can verify that the HTML contains a nonce
-    const provider = new MCPGuardWebviewProvider({
+    const provider = new MCPflareWebviewProvider({
       fsPath: '/mock/path',
       toString: () => '/mock/path',
     } as unknown as import('vscode').Uri);

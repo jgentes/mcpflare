@@ -9,7 +9,7 @@ const config = {
   output: 'export',
   images: { unoptimized: true },
   trailingSlash: true,
-  basePath: '/mcpguard',
+  basePath: '/mcpflare',
 };
 
 export default withMDX(config);

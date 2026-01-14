@@ -1,5 +1,5 @@
 /**
- * Entry point for the MCP Guard webview
+ * Entry point for the MCPflare webview
  */
 
 import React from 'react';

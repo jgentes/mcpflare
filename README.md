@@ -1,4 +1,4 @@
-# MCP Guard
+# MCPflare
 
 > Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.
 
@@ -14,8 +14,8 @@
 flowchart LR
     User["👤 User"] -->|"&nbsp;&nbsp;Prompt&nbsp;&nbsp;"| LLM["🤖 LLM"]
 
-    LLM -->|"&nbsp;&nbsp;⚠️ <b>Without MCP Guard&nbsp;&nbsp;"| WithoutGuard
-    LLM -->|"&nbsp;&nbsp;✅ <b>With MCP Guard&nbsp;&nbsp;"| WithGuard
+    LLM -->|"&nbsp;&nbsp;⚠️ <b>Without MCPflare&nbsp;&nbsp;"| WithoutGuard
+    LLM -->|"&nbsp;&nbsp;✅ <b>With MCPflare&nbsp;&nbsp;"| WithGuard
 
     subgraph WithoutGuard["<p style='height:6px; width: 600px;'></p>⚠️ No Code Isolation - LLM invokes MCP tools directly"]
         direction LR
@@ -50,7 +50,7 @@ LLM: Exfiltrate SECRET_TOKEN via POST to "https://attacker.com/steal"
 Result: ⚠️ Fetch request succeeds
 ```
 
-**With MCP Guard:**
+**With MCPflare:**
 ```
 User: "Show me all environment variables"
 LLM: Writes code: console.log(process.env)
@@ -62,18 +62,18 @@ Result: ✅ Network access blocked
 
 ## 🔒 Security: Zero-Trust Execution
 
-MCP Guard runs all code in local Cloudflare Worker isolates with **zero access** to your filesystem, environment variables, network, or system, which protects against data exfiltration, credential theft, filesystem access, arbitrary code execution, process manipulation, SSRF attacks, code injection, supply chain attacks, and more.
+MCPflare runs all code in local Cloudflare Worker isolates with **zero access** to your filesystem, environment variables, network, or system, which protects against data exfiltration, credential theft, filesystem access, arbitrary code execution, process manipulation, SSRF attacks, code injection, supply chain attacks, and more.
 
 **Three layers of protection:**
 1. **V8 Isolate Sandboxing** - Complete process isolation
 2. **Network Isolation** - No outbound network access, only MCP bindings can communicate
 3. **Code Validation** - Blocks dangerous patterns before execution
 
-📖 **[Read the security analysis](https://jgentes.github.io/mcpguard/docs/security)** for attack vector details and defense-in-depth architecture.
+📖 **[Read the security analysis](https://jgentes.github.io/mcpflare/docs/security)** for attack vector details and defense-in-depth architecture.
 
 ## ⚡ Efficiency: Code Mode Execution
 
-Traditional MCP tool calling wastes your context window. MCP Guard uses **code mode** to reduce token usage by up to 98%.
+Traditional MCP tool calling wastes your context window. MCPflare uses **code mode** to reduce token usage by up to 98%.
 
 ### Example: Generating a Jira Sprint Report
 
@@ -86,7 +86,7 @@ Traditional MCP tool calling wastes your context window. MCP Guard uses **code m
 
 **Total:** 30,300 tokens just to count tickets and generate a simple report.
 
-**With MCP Guard:** The code runs in a secure sandbox, processes all 200 tickets, and only sends back the final summary. The LLM never has to read the individual tickets:
+**With MCPflare:** The code runs in a secure sandbox, processes all 200 tickets, and only sends back the final summary. The LLM never has to read the individual tickets:
 
 ```typescript
 // Fetch tickets, filter and count in code, return only the summary
@@ -117,17 +117,17 @@ console.log(`Sprint Summary: ${stats.completed}/${stats.total} completed, ${stat
 
 ### Installation Steps
 
-1. **Add MCPGuard to your IDE config** (Cursor, Claude Code, or GitHub Copilot):
+1. **Add MCPflare to your IDE config** (Cursor, Claude Code, or GitHub Copilot):
    
-   [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=mcpguard&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcGd1YXJkIl19)
+   [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=mcpflare&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcGZsYXJlIl19)
    
    Or manually add to your IDE's MCP configuration:
    ```json
    {
      "mcpServers": {
-       "mcpguard": {
+       "mcpflare": {
          "command": "npx",
-         "args": ["-y", "mcpguard"]
+         "args": ["-y", "mcpflare"]
        }
      }
    }
@@ -135,14 +135,14 @@ console.log(`Sprint Summary: ${stats.completed}/${stats.total} completed, ${stat
 
 2. **Disable existing MCPs** (recommended):
    
-   To maximize efficiency and security, disable any existing MCPs in your IDE configuration. This prevents the IDE from loading all their tools into the context window unnecessarily, which is one of MCPGuard's key benefits - you only load and use the tools you actually need.
+   To maximize efficiency and security, disable any existing MCPs in your IDE configuration. This prevents the IDE from loading all their tools into the context window unnecessarily, which is one of MCPflare's key benefits - you only load and use the tools you actually need.
    
    **Why disable?**
-   - ⚡ **Efficiency**: Without disabling, your IDE loads all MCP tools into the context window, wasting tokens. MCPGuard only loads tools lazily when you actually use them (via `call_mcp` or namespaced tool calls).
-   - 🔒 **Security**: Ensures all tool calls route through MCPGuard's secure isolation instead of being called directly.
+   - ⚡ **Efficiency**: Without disabling, your IDE loads all MCP tools into the context window, wasting tokens. MCPflare only loads tools lazily when you actually use them (via `call_mcp` or namespaced tool calls).
+   - 🔒 **Security**: Ensures all tool calls route through MCPflare's secure isolation instead of being called directly.
    
    **How to disable:**
-   - **Option 1**: Ask your LLM: "Disable all MCPs except mcpguard in my IDE configuration"
+   - **Option 1**: Ask your LLM: "Disable all MCPs except mcpflare in my IDE configuration"
    - **Option 2**: Manually comment out or remove other MCP entries in your IDE's MCP config file:
      - **Claude Code**: `~/.claude/mcp.jsonc` (or `%APPDATA%\Claude Code\User\globalStorage\mcp.jsonc` on Windows)
      - **GitHub Copilot**: `~/.github/copilot/mcp.jsonc` (or `%APPDATA%\Code\User\globalStorage\github.copilot\mcp.jsonc` on Windows)
@@ -150,39 +150,39 @@ console.log(`Sprint Summary: ${stats.completed}/${stats.total} completed, ${stat
 
 3. **Restart your IDE** for changes to take effect.
 
-4. **That's it!** MCPGuard automatically:
+4. **That's it!** MCPflare automatically:
    - Discovers all other MCPs configured in your IDE (even disabled ones)
    - Routes all tool calls through secure Worker isolation
    - Lazy-loads MCPs when their tools are actually used (via `call_mcp` or namespaced tool calls)
 
-**No additional setup needed!** MCPGuard uses transparent proxy mode by default - all your existing MCPs are automatically guarded without any config changes (once they're disabled).
+**No additional setup needed!** MCPflare uses transparent proxy mode by default - all your existing MCPs are automatically guarded without any config changes (once they're disabled).
 
 ### How Transparent Proxy Mode Works
 
-MCPGuard automatically:
+MCPflare automatically:
 1. **Discovers** all MCPs configured in your IDE (Cursor, Claude Code, or GitHub Copilot)
 2. **Lazy-loads** tool schemas only when tools are actually called (not upfront - this keeps your context window efficient)
 3. **Routes** all tool calls through secure Worker isolation
 4. **Auto-loads** MCPs when their tools are first used
 
-**Example:** If you have `github` MCP configured, MCPGuard will:
-- When the LLM calls `github::search_repositories`, MCPGuard automatically loads the GitHub MCP schema and executes the call in isolation
+**Example:** If you have `github` MCP configured, MCPflare will:
+- When the LLM calls `github::search_repositories`, MCPflare automatically loads the GitHub MCP schema and executes the call in isolation
 - All results are returned transparently - the LLM doesn't need to know about the isolation layer
 - Tool schemas are cached after first use for faster subsequent calls
 
-This means **all MCP tool calls automatically go through MCPGuard** - no config changes needed!
+This means **all MCP tool calls automatically go through MCPflare** - no config changes needed!
 
 You'll see a prompt like this:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║              MCP Guard - Interactive CLI                  ║
+║              MCPflare - Interactive CLI                   ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.
 Type "exit" to quit.
 
-mcpguard>
+mcpflare>
 ```
 
 ### Basic Usage
@@ -222,7 +222,7 @@ npm run cli
 
 ### 2. Load the GitHub MCP Server
 
-At the `mcpguard>` prompt, type:
+At the `mcpflare>` prompt, type:
 
 ```
 load
@@ -238,7 +238,7 @@ You'll be prompted for information. Enter:
 **Example interaction:**
 
 ```
-mcpguard> load
+mcpflare> load
 MCP name: github
 Command (e.g., npx): npx
 Args (comma-separated, or press Enter for none): -y,@modelcontextprotocol/server-github
@@ -343,9 +343,9 @@ Configure your AI agent (Claude Desktop, Cursor IDE, etc.):
 ```json
 {
   "mcpServers": {
-    "mcpguard": {
-      "command": "node",
-      "args": ["/path/to/mcpguard/dist/server/index.js"]
+      "mcpflare": {
+        "command": "node",
+        "args": ["/path/to/mcpflare/dist/server/index.js"]
     }
   }
 }
@@ -359,13 +359,13 @@ Configure your AI agent (Claude Desktop, Cursor IDE, etc.):
 - All tool calls are routed through secure isolation
 
 **MCP Prompts** (slash commands):
-- Prompts from your configured MCPs appear as slash commands (e.g., `/mcpguard/github:AssignCodingAgent`)
+- Prompts from your configured MCPs appear as slash commands (e.g., `/mcpflare/github:AssignCodingAgent`)
 - Prompts are read-only message templates, so they're directly proxied without worker isolation
 - All prompts are transparently aggregated and namespaced for easy discovery
 
-**MCPGuard Management Tools:**
+**MCPflare Management Tools:**
 - `call_mcp` - Call MCP tools by running TypeScript code in a secure sandbox (auto-connects MCPs from IDE config if needed)
-- `guard` - Guard MCP servers by routing them through MCPGuard's secure isolation
+- `guard` - Guard MCP servers by routing them through MCPflare's secure isolation
 - `search_mcp_tools` - Discover which MCPs are configured in your IDE. Shows all configured MCPs (including guarded) with their status and available tools.
 - `connect` - Manually connect to an MCP server (usually not needed - transparent proxy auto-connects)
 - `list_available_mcps` - List all currently connected MCP servers (runtime state)

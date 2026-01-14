@@ -1,5 +1,5 @@
 /**
- * React components for the MCP Guard webview UI
+ * React components for the MCPflare webview UI
  *
  * UI Component Guidelines:
  * - Use shadcn/ui-style components for consistency
@@ -13,7 +13,7 @@ import type {
   ConnectionTestResult,
   ConnectionTestStep,
   MCPConfigInput,
-  MCPGuardSettings,
+  MCPflareSettings,
   MCPSecurityConfig,
   MCPServerInfo,
   TokenSavingsSummary,
@@ -492,8 +492,8 @@ interface TokenSavingsBadgeProps {
 // Default context window size (200k tokens - Claude/GPT-4 standard)
 const DEFAULT_CONTEXT_WINDOW_SIZE = 200000
 
-// MCPGuard's consolidated tool baseline (~500 tokens for all MCPGuard tools)
-const MCPGUARD_BASELINE_TOKENS = 500
+// MCPflare's consolidated tool baseline (~500 tokens for all MCPflare tools)
+const MCPFLARE_BASELINE_TOKENS = 500
 
 // Anthropic's article on code execution with MCP and context efficiency
 const CONTEXT_WINDOW_ARTICLE_URL =
@@ -683,9 +683,9 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
   )
   const hasGuardedMcps = guardedMcps.length > 0 && globalEnabled
 
-  // Actual context usage: unguarded at full size + MCPGuard baseline (if any guarded)
+  // Actual context usage: unguarded at full size + MCPflare baseline (if any guarded)
   const actualTokens =
-    unguardedTokens + (hasGuardedMcps ? MCPGUARD_BASELINE_TOKENS : 0)
+    unguardedTokens + (hasGuardedMcps ? MCPFLARE_BASELINE_TOKENS : 0)
 
   // Total tokens for bar proportions: show ALL MCPs at original size
   // This lets us visualize the "savings" - guarded MCPs shown but marked as consolidated
@@ -734,7 +734,7 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
           </span>
           <button
             onClick={openContextArticle}
-            title="Learn how MCPGuard improves context efficiency (Anthropic Engineering)"
+            title="Learn how MCPflare improves context efficiency (Anthropic Engineering)"
             style={{
               background: 'transparent',
               border: 'none',
@@ -912,7 +912,7 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
                 }}
                 title={
                   mcp.isGuarded
-                    ? `${mcp.name}: ${formatNumber(mcp.tokens)} tokens → guarded (consolidated to ~${formatNumber(MCPGUARD_BASELINE_TOKENS)} shared)`
+                    ? `${mcp.name}: ${formatNumber(mcp.tokens)} tokens → guarded (consolidated to ~${formatNumber(MCPFLARE_BASELINE_TOKENS)} shared)`
                     : `${mcp.name}: ${formatNumber(mcp.tokens)} tokens (${mcp.toolCount} tools) - unguarded`
                 }
               >
@@ -1042,7 +1042,7 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
                       {formatNumber(mcp.tokens)} → ~
                       {formatNumber(
                         Math.round(
-                          MCPGUARD_BASELINE_TOKENS / guardedMcps.length,
+                          MCPFLARE_BASELINE_TOKENS / guardedMcps.length,
                         ),
                       )}{' '}
                       tokens
@@ -1212,7 +1212,7 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
 
       {/* Potential Savings - show what could be saved by guarding unguarded MCPs */}
       {unguardedMcps.length > 0 &&
-        unguardedTokens > MCPGUARD_BASELINE_TOKENS && (
+        unguardedTokens > MCPFLARE_BASELINE_TOKENS && (
           <div
             style={{
               marginTop: '10px',
@@ -1233,13 +1233,13 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
               {unguardedMcps.length === 1 ? '' : 's'} for{' '}
               <span style={{ color: '#eab308', fontWeight: 600 }}>
                 {Math.round(
-                  (1 - MCPGUARD_BASELINE_TOKENS / unguardedTokens) * 100,
+                  (1 - MCPFLARE_BASELINE_TOKENS / unguardedTokens) * 100,
                 )}
                 %
               </span>{' '}
               reduction in token usage{' '}
               <span style={{ color: 'var(--text-secondary)' }}>
-                ({formatNumber(unguardedTokens - MCPGUARD_BASELINE_TOKENS)}{' '}
+                ({formatNumber(unguardedTokens - MCPFLARE_BASELINE_TOKENS)}{' '}
                 tokens)
               </span>
             </span>
@@ -1287,7 +1287,7 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
       )}
 
       {/* Active Token Savings Info (if guarded) */}
-      {hasGuardedMcps && guardedTokensOriginal > MCPGUARD_BASELINE_TOKENS && (
+      {hasGuardedMcps && guardedTokensOriginal > MCPFLARE_BASELINE_TOKENS && (
         <div
           style={{
             marginTop: '10px',
@@ -1303,16 +1303,16 @@ export const TokenSavingsBadge: React.FC<TokenSavingsBadgeProps> = ({
         >
           <SparklesIcon size={14} className={undefined} />
           <span style={{ color: 'var(--text-secondary)' }}>
-            MCPGuard provides{' '}
+            MCPflare provides{' '}
             <span style={{ color: '#22c55e', fontWeight: 600 }}>
               {Math.round(
-                (1 - MCPGUARD_BASELINE_TOKENS / guardedTokensOriginal) * 100,
+                (1 - MCPFLARE_BASELINE_TOKENS / guardedTokensOriginal) * 100,
               )}
               %
             </span>{' '}
             reduction{' '}
             <span style={{ color: 'var(--text-secondary)' }}>
-              ({formatNumber(guardedTokensOriginal - MCPGUARD_BASELINE_TOKENS)}{' '}
+              ({formatNumber(guardedTokensOriginal - MCPFLARE_BASELINE_TOKENS)}{' '}
               tokens from {guardedMcps.length} guarded MCP
               {guardedMcps.length === 1 ? '' : 's'})
             </span>
@@ -2181,7 +2181,7 @@ interface MCPCardProps {
     source?: 'claude' | 'copilot' | 'cursor',
   ) => void
   currentIDE?: string // The IDE we're currently running in
-  globalEnabled?: boolean // Whether MCP Guard is globally enabled
+  globalEnabled?: boolean // Whether MCPflare is globally enabled
   onTestConnection?: (mcpName: string) => void // Callback to test connection
   onViewLogs?: () => void // Callback to open logs
   isExpanded?: boolean // Controlled expanded state from parent
@@ -2370,12 +2370,12 @@ export const MCPCard: React.FC<MCPCardProps> = ({
                     color: '#f97316',
                     fontWeight: 500,
                   }}
-                  title="OAuth MCPs cannot be guarded by MCPGuard"
+                  title="OAuth MCPs cannot be guarded by MCPflare"
                 >
                   Cannot Guard
                 </span>
               )}
-            {/* Assessment error - SDK mismatch (MCPGuard server can't connect) */}
+            {/* Assessment error - SDK mismatch (MCPflare server can't connect) */}
             {!server.tokenMetrics &&
               server.assessmentError?.type === 'sdk_mismatch' && (
                 <span
@@ -2616,8 +2616,8 @@ export const MCPCard: React.FC<MCPCardProps> = ({
               }}
               title={
                 server.assessmentError?.type === 'sdk_mismatch'
-                  ? 'MCPGuard server cannot connect to this MCP'
-                  : 'OAuth MCPs are not supported by MCPGuard'
+                  ? 'MCPflare server cannot connect to this MCP'
+                  : 'OAuth MCPs are not supported by MCPflare'
               }
             >
               {server.assessmentError?.type === 'sdk_mismatch'
@@ -2687,7 +2687,7 @@ export const MCPCard: React.FC<MCPCardProps> = ({
           className="animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* OAuth Required - Not Supported by MCPGuard */}
+          {/* OAuth Required - Not Supported by MCPflare */}
           {server.assessmentError?.type === 'oauth_required' && (
             <div
               style={{
@@ -2723,7 +2723,7 @@ export const MCPCard: React.FC<MCPCardProps> = ({
                       lineHeight: 1.5,
                     }}
                   >
-                    This MCP requires OAuth authentication, which MCPGuard
+                    This MCP requires OAuth authentication, which MCPflare
                     cannot support. OAuth tokens are managed by Cursor
                     internally, and guarding would break the token association.
                     <strong style={{ display: 'block', marginTop: '8px' }}>
@@ -2736,7 +2736,7 @@ export const MCPCard: React.FC<MCPCardProps> = ({
             </div>
           )}
 
-          {/* SDK Mismatch - MCPGuard server cannot connect */}
+          {/* SDK Mismatch - MCPflare server cannot connect */}
           {server.assessmentError?.type === 'sdk_mismatch' && (
             <div
               style={{
@@ -2772,7 +2772,7 @@ export const MCPCard: React.FC<MCPCardProps> = ({
                       lineHeight: 1.5,
                     }}
                   >
-                    MCPGuard's SDK transport cannot connect to this MCP, even
+                    MCPflare's SDK transport cannot connect to this MCP, even
                     though a direct HTTP connection works. This usually indicates
                     an authentication or protocol compatibility issue.
                     {server.assessmentError.sdkValidation && (
@@ -3806,7 +3806,7 @@ export const Header: React.FC<HeaderProps> = ({
       <ShieldLogo size={48} />
       <div>
         <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-          MCP Guard
+          MCPflare
         </h1>
         <p
           style={{
@@ -3833,7 +3833,7 @@ export const Header: React.FC<HeaderProps> = ({
       <Toggle
         enabled={globalEnabled}
         onChange={onGlobalToggle}
-        label={globalEnabled ? 'MCP Guard Enabled' : 'MCP Guard Disabled'}
+        label={globalEnabled ? 'MCPflare Enabled' : 'MCPflare Disabled'}
       />
 
       <Button variant="ghost" size="sm" onClick={onOpenMCPConfig}>
@@ -3944,7 +3944,7 @@ export const TestPromptModal: React.FC<TestPromptModalProps> = ({
         return {
           title: 'Quick Security Test',
           description:
-            "Verify MCPGuard's protections are active with a quick test.",
+            "Verify MCPflare's protections are active with a quick test.",
           prompt: `Test "${mcpName}" MCP security. Run this using call_mcp with mcp_name "${mcpName}":
 
 \`\`\`typescript
@@ -4020,7 +4020,7 @@ Just report PASS or FAIL.`,
         return {
           title: 'Legitimate Tool Test',
           description: 'Verify that normal MCP tools work correctly.',
-          prompt: `Test that "${mcpName}" tools work through MCPGuard.
+          prompt: `Test that "${mcpName}" tools work through MCPflare.
 
 1. Use search_mcp_tools to find a tool for "${mcpName}"
 2. Call it using call_mcp with mcp_name "${mcpName}"
@@ -4031,7 +4031,7 @@ Just confirm if the tool call succeeded or failed.`,
       default:
         return {
           title: 'Security Test',
-          description: 'Verify MCPGuard protections.',
+          description: 'Verify MCPflare protections.',
           prompt: `Test "${mcpName}" MCP security using call_mcp.`,
         }
     }
@@ -4141,7 +4141,7 @@ Just confirm if the tool call succeeded or failed.`,
               }}
             >
               This MCP is currently <strong>unguarded</strong>, which means it
-              has direct access without MCPGuard's security isolation.
+              has direct access without MCPflare's security isolation.
             </p>
 
             {/* Risk Explanation */}
@@ -4188,7 +4188,7 @@ Just confirm if the tool call succeeded or failed.`,
               </ul>
             </div>
 
-            {/* How MCPGuard Helps */}
+            {/* How MCPflare Helps */}
             <div
               style={{
                 background: 'rgba(34, 197, 94, 0.1)',
@@ -4206,7 +4206,7 @@ Just confirm if the tool call succeeded or failed.`,
                   color: 'var(--success)',
                 }}
               >
-                How MCPGuard Protects You:
+                How MCPflare Protects You:
               </h4>
               <ul
                 style={{
@@ -4374,7 +4374,7 @@ Just confirm if the tool call succeeded or failed.`,
                   <li>Copy the prompt below</li>
                   <li>Paste it into your AI chat (Cursor, Claude, etc.)</li>
                   <li>
-                    The AI will execute the test via MCPGuard's secure isolation
+                    The AI will execute the test via MCPflare's secure isolation
                   </li>
                   <li>Review the results to verify protection is active</li>
                 </ol>
@@ -5189,7 +5189,7 @@ export const TestingTab: React.FC<TestingTabProps> = ({
         </div>
       </div>
 
-      {/* What MCPGuard Protects Against */}
+      {/* What MCPflare Protects Against */}
       <div style={{ marginBottom: '24px' }}>
         <h3
           style={{
@@ -5199,7 +5199,7 @@ export const TestingTab: React.FC<TestingTabProps> = ({
             color: 'var(--text-primary)',
           }}
         >
-          What MCPGuard Protects Against
+          What MCPflare Protects Against
         </h3>
         <div
           style={{
@@ -5392,8 +5392,8 @@ export const TestingTab: React.FC<TestingTabProps> = ({
                 }}
               >
                 {selectedMCPIsGuarded
-                  ? "Run security tests to verify that MCPGuard's protections are active. Tests will confirm that malicious operations are blocked while legitimate tool calls succeed."
-                  : "This MCP is not guarded. Enable guarding to activate MCPGuard's security isolation, then run tests to verify the protection is working."}
+                  ? "Run security tests to verify that MCPflare's protections are active. Tests will confirm that malicious operations are blocked while legitimate tool calls succeed."
+                  : "This MCP is not guarded. Enable guarding to activate MCPflare's security isolation, then run tests to verify the protection is working."}
               </div>
             </div>
           </div>
@@ -5461,7 +5461,7 @@ export const TestingTab: React.FC<TestingTabProps> = ({
             lineHeight: 1.6,
           }}
         >
-          Tests run through MCPGuard's{' '}
+          Tests run through MCPflare's{' '}
           <code
             style={{
               background: 'var(--bg-hover)',
@@ -5509,7 +5509,7 @@ export const TestingTab: React.FC<TestingTabProps> = ({
           }}
         >
           Note: Tests only work for guarded MCPs. Enable guarding first to
-          activate MCPGuard's protection layer.
+          activate MCPflare's protection layer.
         </p>
       </div>
 

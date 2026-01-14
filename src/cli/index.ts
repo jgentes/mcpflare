@@ -54,7 +54,7 @@ if (verbose) {
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  prompt: 'mcpguard> ',
+  prompt: 'mcpflare> ',
 })
 
 const workerManager = new WorkerManager()
@@ -151,10 +151,10 @@ async function loadMCP() {
         `\n⚠️  Warning: An MCP named "${mcpName}" already exists in your ${sourceName} configuration.`,
       )
       console.log(
-        `   If you're using mcpguard, consider disabling "${mcpName}" in your IDE's MCP settings`,
+        `   If you're using mcpflare, consider disabling "${mcpName}" in your IDE's MCP settings`,
       )
       console.log(
-        `   to avoid confusion. The IDE will use the real MCP, while mcpguard uses the sandboxed version.`,
+        `   to avoid confusion. The IDE will use the real MCP, while mcpflare uses the sandboxed version.`,
       )
       const proceed = await question('\nContinue anyway? (y/N): ')
       if (proceed.trim().toLowerCase() !== 'y') {
@@ -780,7 +780,7 @@ async function testDirect() {
     })
 
     const client = new Client(
-      { name: 'mcpguard-cli-direct-test', version: '1.0.0' },
+      { name: 'mcpflare-cli-direct-test', version: '1.0.0' },
       { capabilities: {} },
     )
 
@@ -1342,18 +1342,18 @@ async function checkIDEConflicts() {
     if (conflict.inIDE && conflict.inIsolate) {
       hasConflicts = true
       console.log(
-        `⚠️  "${conflict.name}" is configured in both your IDE and mcpguard`,
+        `⚠️  "${conflict.name}" is configured in both your IDE and mcpflare`,
       )
       console.log(
         `   Recommendation: Disable "${conflict.name}" in your IDE's MCP settings`,
       )
       console.log(
-        `   to avoid confusion. The IDE will use the real MCP, while mcpguard`,
+        `   to avoid confusion. The IDE will use the real MCP, while mcpflare`,
       )
       console.log(`   uses the sandboxed version.\n`)
     } else if (conflict.inIDE && !conflict.inIsolate) {
       console.log(
-        `ℹ️  "${conflict.name}" is configured in your IDE but not loaded in mcpguard`,
+        `ℹ️  "${conflict.name}" is configured in your IDE but not loaded in mcpflare`,
       )
       console.log(
         `   This is fine - they won't conflict unless you load it here.\n`,
@@ -1433,7 +1433,7 @@ async function deleteSavedConfig() {
 }
 
 // Legacy install/restore functions removed - transparent proxy mode makes them unnecessary
-// MCPGuard automatically discovers and guards all configured MCPs without config modifications
+// MCPflare automatically discovers and guards all configured MCPs without config modifications
 
 // Token metrics cache (loaded from disk, shared with VSCode extension)
 const tokenMetricsCache = loadTokenMetrics()
@@ -1464,7 +1464,7 @@ async function showSavings() {
       toolCount?: number
     }> = []
 
-    // Check which MCPs are guarded (in _mcpguard_disabled section)
+    // Check which MCPs are guarded (in _mcpflare_disabled section)
     const disabledMCPs = configManager.getDisabledMCPNames()
 
     for (const [name, entry] of Object.entries(savedConfigs)) {
@@ -1510,10 +1510,10 @@ async function showSavings() {
     console.log('\n📊 Token Savings Analysis')
     console.log('════════════════════════════════════════════════════════════')
     console.log(
-      `  Without MCPGuard: ${formatTokens(summary.totalTokensWithoutGuard)} tokens`,
+      `  Without MCPflare: ${formatTokens(summary.totalTokensWithoutGuard)} tokens`,
     )
     console.log(
-      `  With MCPGuard:    ${formatTokens(summary.mcpGuardTokens)} tokens (MCPGuard's ${summary.mcpGuardTokens} tools)`,
+      `  With MCPflare:    ${formatTokens(summary.mcpflareTokens)} tokens (MCPflare's ${summary.mcpflareTokens} tools)`,
     )
     console.log('  ─────────────────────────────────────────────────────────')
 
@@ -1619,7 +1619,7 @@ async function guardMCP(mcpName: string, shouldGuard: boolean) {
           }
         }
         console.log(
-          `\n⚠ Removed MCPGuard protection from all ${unguardedCount} MCPs`,
+          `\n⚠ Removed MCPflare protection from all ${unguardedCount} MCPs`,
         )
         console.log(`  All MCPs now have direct access to your system`)
       }
@@ -1645,7 +1645,7 @@ async function guardMCP(mcpName: string, shouldGuard: boolean) {
       }
 
       configManager.disableMCP(mcpName)
-      console.log(`\n✓ ${mcpName} moved to MCPGuard protection`)
+      console.log(`\n✓ ${mcpName} moved to MCPflare protection`)
       console.log(
         `  Network: Isolated (use 'configure ${mcpName}' to allow domains)`,
       )
@@ -1673,7 +1673,7 @@ async function guardMCP(mcpName: string, shouldGuard: boolean) {
       configManager.enableMCP(mcpName)
       // Invalidate cache when unguarding (metrics may change)
       invalidateMetricsCache(mcpName)
-      console.log(`\n⚠ ${mcpName} removed from MCPGuard protection`)
+      console.log(`\n⚠ ${mcpName} removed from MCPflare protection`)
       console.log(`  This MCP now has direct access to your system`)
     }
   } catch (error: unknown) {
@@ -1785,7 +1785,7 @@ async function diagnoseMCP() {
       })
 
       const client = new Client(
-        { name: 'mcpguard-cli-diagnose', version: '1.0.0' },
+        { name: 'mcpflare-cli-diagnose', version: '1.0.0' },
         { capabilities: {} },
       )
 
@@ -1932,7 +1932,7 @@ async function configureMCP() {
     console.log(`\n⚙️  Configuration: ${selectedName}`)
     console.log('════════════════════════════════════════════════════════════')
     console.log(
-      `  Status: ${isGuarded ? '🛡️  Guarded (Protected by MCPGuard)' : '⚠️  Unguarded (Direct access)'}`,
+      `  Status: ${isGuarded ? '🛡️  Guarded (Protected by MCPflare)' : '⚠️  Unguarded (Direct access)'}`,
     )
     console.log('')
 
@@ -1942,7 +1942,7 @@ async function configureMCP() {
       console.log('  Filesystem: Direct access (no isolation)')
       console.log('')
       console.log(
-        `  Run 'guard ${selectedName}' to enable MCPGuard protection.`,
+        `  Run 'guard ${selectedName}' to enable MCPflare protection.`,
       )
       return
     }
@@ -1999,11 +1999,11 @@ async function showStatus() {
     const unguardedCount = totalMCPs - guardedCount
     const loadedCount = loadedInstances.length
 
-    console.log('\nMCP Guard Status')
+    console.log('\nMCPflare Status')
     console.log('════════════════════════════════════════════════════════════')
 
     // Global state
-    const globalEnabled = true // MCPGuard is always enabled in CLI mode
+    const globalEnabled = true // MCPflare is always enabled in CLI mode
     console.log(
       `  Global Protection: ${globalEnabled ? '✓ ENABLED' : '✗ DISABLED'}`,
     )
@@ -2064,10 +2064,10 @@ async function showStatus() {
 function showHelp() {
   console.log(`
 Available commands:
-  status        - Show at-a-glance MCP Guard status (counts, token savings, quick actions)
+  status        - Show at-a-glance MCPflare status (counts, token savings, quick actions)
   savings       - Detailed token savings analysis with per-MCP breakdown
-  guard <mcp>   - Enable MCPGuard protection for an MCP (use --all for all MCPs)
-  unguard <mcp> - Disable MCPGuard protection for an MCP (use --all for all MCPs)
+  guard <mcp>   - Enable MCPflare protection for an MCP (use --all for all MCPs)
+  unguard <mcp> - Disable MCPflare protection for an MCP (use --all for all MCPs)
   network <mcp> on|off           - Enable/disable Worker outbound network for a guarded MCP
   allowhost <mcp> add|remove <h> - Add/remove an allowed host (e.g., api.github.com)
   allowlocalhost <mcp> on|off    - Allow/deny localhost (localhost/127.0.0.1) access
@@ -2295,7 +2295,7 @@ async function main() {
 
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║              MCP Guard - Interactive CLI                  ║
+║              MCPflare - Interactive CLI                  ║
 ╚═══════════════════════════════════════════════════════════╝
 
 Type "help" for available commands.
@@ -2318,7 +2318,7 @@ ${verbose ? '\n🔍 Verbose logging enabled. Use --quiet to disable.\n' : '\n�
 }
 
 // Legacy non-interactive install/restore functions removed
-// With transparent proxy mode, no installation step is needed beyond adding mcpguard to IDE config
+// With transparent proxy mode, no installation step is needed beyond adding mcpflare to IDE config
 
 main().catch((error) => {
   console.error('Fatal error:', error)

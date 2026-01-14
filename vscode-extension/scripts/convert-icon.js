@@ -6,7 +6,7 @@ const path = require('path');
 
 console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║                    MCP Guard Icon Setup                        ║
+║                    MCPflare Icon Setup                        ║
 ╠════════════════════════════════════════════════════════════════╣
 ║                                                                 ║
 ║  VS Code requires a PNG file for extension icons.              ║

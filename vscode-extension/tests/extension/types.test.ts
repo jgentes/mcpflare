@@ -8,7 +8,7 @@ import {
   DEFAULT_SECURITY_CONFIG,
   DEFAULT_SETTINGS,
   type MCPSecurityConfig,
-  type MCPGuardSettings,
+  type MCPflareSettings,
   type MCPServerInfo,
   type NetworkConfig,
   type FileSystemConfig,
@@ -156,8 +156,8 @@ describe('types', () => {
       expect(fsConfig.writePaths).toHaveLength(1);
     });
 
-    it('should allow creating valid MCPGuardSettings', () => {
-      const settings: MCPGuardSettings = {
+    it('should allow creating valid MCPflareSettings', () => {
+      const settings: MCPflareSettings = {
         enabled: true,
         defaults: DEFAULT_SECURITY_CONFIG,
         mcpConfigs: [

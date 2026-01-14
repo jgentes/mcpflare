@@ -1,6 +1,6 @@
-# MCP Guard Presentation
+# MCPflare Presentation
 
-Self-contained HTML slide deck for introducing MCP Guard to developers.
+Self-contained HTML slide deck for introducing MCPflare to developers.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ Touch swipe also works on mobile/tablet.
 
 ### Pre-Brief (30s)
 
-> "AI agents are powerful—but tools eat your context window and open security gaps. MCP Guard fixes both."
+> "AI agents are powerful—but tools eat your context window and open security gaps. MCPflare fixes both."
 
 ### Slide-by-Slide Notes
 
@@ -62,7 +62,7 @@ Optional live demo after the slides. Keep it tight—the slides already visualiz
 
 #### 1. Show Extension UI (30s)
 
-Open VS Code → MCP Guard panel. Point to:
+Open VS Code → MCPflare panel. Point to:
 - Guarded vs unguarded MCPs
 - Token savings badge (94% reduction shown)
 - Per-MCP config options
@@ -71,7 +71,7 @@ Open VS Code → MCP Guard panel. Point to:
 
 ```bash
 npm run cli
-mcpguard> execute
+mcpflare> execute
 # Select: github
 # Code: const res = await fetch('https://example.com'); return res.status;
 ```
@@ -83,7 +83,7 @@ mcpguard> execute
 Add `api.github.com` in extension, then:
 
 ```bash
-mcpguard> execute
+mcpflare> execute
 # Code: const res = await fetch('https://api.github.com'); return res.status;
 ```
 
@@ -92,7 +92,7 @@ mcpguard> execute
 #### 4. Wrap Up (30s)
 
 ```bash
-mcpguard> exit
+mcpflare> exit
 ```
 
 **Say:** "Efficient. Secure. Simple."
@@ -131,7 +131,7 @@ Several options:
 
 ```bash
 npm install -g decktape
-decktape generic slides/index.html slides/mcpguard-deck.pdf --size 1920x1080
+decktape generic slides/index.html slides/mcpflare-deck.pdf --size 1920x1080
 ```
 
 ### Option C: Screenshot each slide

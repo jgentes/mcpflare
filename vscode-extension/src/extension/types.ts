@@ -1,5 +1,5 @@
 /**
- * MCP Guard Configuration Types
+ * MCPflare Configuration Types
  */
 
 /**
@@ -47,7 +47,7 @@ export interface MCPSecurityConfigStored {
   id: string;
   /** Name of the MCP server */
   mcpName: string;
-  // isGuarded is NOT stored - it's derived from IDE config (_mcpguard_disabled)
+  // isGuarded is NOT stored - it's derived from IDE config (_mcpflare_disabled)
   /** Network access configuration */
   network: NetworkConfig;
   /** File system access configuration */
@@ -60,10 +60,10 @@ export interface MCPSecurityConfigStored {
 
 /**
  * Security settings for an MCP server (with computed isGuarded)
- * isGuarded is derived from whether the MCP is in _mcpguard_disabled in IDE config
+ * isGuarded is derived from whether the MCP is in _mcpflare_disabled in IDE config
  */
 export interface MCPSecurityConfig extends MCPSecurityConfigStored {
-  /** Computed from IDE config - true if MCP is in _mcpguard_disabled */
+  /** Computed from IDE config - true if MCP is in _mcpflare_disabled */
   isGuarded: boolean;
 }
 
@@ -201,10 +201,10 @@ export interface AssessmentErrorsCache {
 }
 
 /**
- * Global MCP Guard settings (stored format)
+ * Global MCPflare settings (stored format)
  */
-export interface MCPGuardSettingsStored {
-  /** Whether MCP Guard is globally enabled */
+export interface MCPflareSettingsStored {
+  /** Whether MCPflare is globally enabled */
   enabled: boolean;
   /** Default security settings for new MCPs */
   defaults: Omit<MCPSecurityConfigStored, 'id' | 'mcpName' | 'lastModified'>;
@@ -219,10 +219,10 @@ export interface MCPGuardSettingsStored {
 }
 
 /**
- * Global MCP Guard settings (with computed isGuarded)
+ * Global MCPflare settings (with computed isGuarded)
  */
-export interface MCPGuardSettings {
-  /** Whether MCP Guard is globally enabled */
+export interface MCPflareSettings {
+  /** Whether MCPflare is globally enabled */
   enabled: boolean;
   /** Default security settings for new MCPs */
   defaults: Omit<MCPSecurityConfig, 'id' | 'mcpName' | 'isGuarded' | 'lastModified'>;
@@ -258,11 +258,11 @@ export interface MCPConfigInput {
 export type WebviewMessage =
   | { type: 'getSettings' }
   | { type: 'getMCPServers' }
-  | { type: 'saveSettings'; data: MCPGuardSettings }
+  | { type: 'saveSettings'; data: MCPflareSettings }
   | { type: 'saveMCPConfig'; data: MCPSecurityConfig; source?: 'claude' | 'copilot' | 'cursor' }
   | { type: 'importFromIDE' }
   | { type: 'refreshMCPs' }
-  | { type: 'openMCPGuardDocs' }
+  | { type: 'openMCPflareDocs' }
   | { type: 'assessTokens'; mcpName: string }
   | { type: 'openIDEConfig'; source: 'claude' | 'copilot' | 'cursor' | 'unknown' }
   | { type: 'retryAssessment'; mcpName: string; source?: 'claude' | 'copilot' | 'cursor' }
@@ -278,10 +278,10 @@ export type WebviewMessage =
  * Token savings summary data
  */
 export interface TokenSavingsSummary {
-  /** Total tokens that would be used without MCPGuard */
+  /** Total tokens that would be used without MCPflare */
   totalTokensWithoutGuard: number;
-  /** Tokens used by MCPGuard itself (~500 for its tools) */
-  mcpGuardTokens: number;
+  /** Tokens used by MCPflare itself (~500 for its tools) */
+  mcpflareTokens: number;
   /** Net tokens saved */
   tokensSaved: number;
   /** Number of MCPs with assessed token metrics */
@@ -331,7 +331,7 @@ export interface ConnectionTestStep {
  * Response messages from extension to webview
  */
 export type ExtensionMessage =
-  | { type: 'settings'; data: MCPGuardSettings }
+  | { type: 'settings'; data: MCPflareSettings }
   | { type: 'mcpServers'; data: MCPServerInfo[] }
   | { type: 'error'; message: string }
   | { type: 'success'; message: string }
@@ -365,7 +365,7 @@ export const DEFAULT_SECURITY_CONFIG: Omit<MCPSecurityConfigStored, 'id' | 'mcpN
 /**
  * Default global settings
  */
-export const DEFAULT_SETTINGS: MCPGuardSettings = {
+export const DEFAULT_SETTINGS: MCPflareSettings = {
   enabled: true,
   defaults: DEFAULT_SECURITY_CONFIG,
   mcpConfigs: [],

@@ -1,6 +1,6 @@
 ---
 title: Security Analysis
-description: Deep dive into attack vectors and how MCP Guard protects against them.
+description: Deep dive into attack vectors and how MCPflare protects against them.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 ## Executive Summary
 
-MCP Guard creates a **zero-trust execution environment** by combining:
+MCPflare creates a **zero-trust execution environment** by combining:
 
 1. **V8 Isolate sandboxing** - OS-level process isolation
 2. **Network isolation (default)** (`globalOutbound: null`) - Deny outbound by default, with optional per-MCP allowlists
@@ -62,7 +62,7 @@ MCP Guard creates a **zero-trust execution environment** by combining:
   </Tab>
   <Tab value="Protection">
     - ✅ No `process.env` access - Worker isolate doesn't have Node.js `process` object
-    - ✅ Credentials stored outside isolate - All API keys managed by MCP Guard server
+    - ✅ Credentials stored outside isolate - All API keys managed by MCPflare server
     - ✅ Binding-based authentication - MCP bindings handle auth transparently
     - ✅ Code validation blocks `process.` patterns
 
@@ -223,7 +223,7 @@ MCP Guard creates a **zero-trust execution environment** by combining:
 | Resource exhaustion | ⚠️ Limited |
 | SSRF | ❌ None |
 
-### MCP Guard
+### MCPflare
 
 | Attack Vector | Protection Level |
 |--------------|------------------|

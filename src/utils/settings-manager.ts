@@ -1,7 +1,7 @@
 /**
  * Settings Manager
  *
- * Utilities for managing MCPGuard settings stored in ~/.mcpguard/settings.json
+ * Utilities for managing MCPflare settings stored in ~/.mcpflare/settings.json
  * This file is shared between the CLI and VSCode extension to provide a
  * unified cache for token metrics and assessment results.
  */
@@ -24,11 +24,11 @@ interface SettingsFile {
 }
 
 /**
- * Get the path to the MCP Guard settings file
+ * Get the path to the MCPflare settings file
  * Creates the directory if it doesn't exist
  */
 export function getSettingsPath(): string {
-  const configDir = path.join(os.homedir(), '.mcpguard')
+  const configDir = path.join(os.homedir(), '.mcpflare')
 
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true })
