@@ -5,6 +5,7 @@
     "tag": true,
     "tagName": "v${version}",
     "push": true,
+    "pushArgs": ["--no-verify"],
     "requireCleanWorkingDir": false,
     "requireUpstream": false
   },
