@@ -1,3 +1,9 @@
 # Lint/format check before pushing (matches CI "npm run check")
 npm run check
 
+# Run tests before pushing - tests MUST pass, do not skip or disable tests
+# If tests fail, fix the underlying issue rather than bypassing this hook
+echo "Running tests before push..."
+npm run test
+
+echo "All checks passed - pushing to remote"
