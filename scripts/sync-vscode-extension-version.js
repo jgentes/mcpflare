@@ -3,10 +3,10 @@
 /**
  * Syncs the VSCode extension version with the main package.json version
  * This ensures both packages always have the same version number
- * Also stages the file so release-it includes it in the commit
+ *
+ * Called by npm's postversion hook - git staging is handled there
  */
 
-import { execSync } from 'child_process'
 import { readFileSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -46,18 +46,3 @@ writeFileSync(
 console.log(
   `✅ Synced VSCode extension version: ${currentVscodeVersion} → ${mainVersion}`,
 )
-
-// Stage the file so release-it includes it in the commit
-try {
-  const relativePath = join('vscode-extension', 'package.json')
-  execSync(`git add ${relativePath}`, { stdio: 'inherit' })
-  console.log(`✅ Staged ${relativePath} for commit`)
-} catch (error) {
-  console.error(
-    `⚠️  Warning: Failed to stage vscode-extension/package.json: ${error.message}`,
-  )
-  console.error(
-    '   The file was updated but may not be included in the release commit.',
-  )
-  // Don't exit with error - the sync succeeded, staging is just a convenience
-}
