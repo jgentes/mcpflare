@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       release-type:
-        description: 'Release type'
+        description: "Release type"
         required: true
         type: choice
         options:
           - patch
           - minor
           - major
-        default: 'patch'
+        default: "patch"
 
 permissions:
   contents: write
@@ -21,38 +21,44 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
-      
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+          # Uses OIDC for trusted publishing (no token needed)
+
       - name: Install dependencies
         run: npm ci
-      
+
+      # OIDC requires npm v11.5.1 or later
+      # Node.js v20 comes with npm v10.8, so we need to update it
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
       - name: Build
         run: npm run build
-      
+
       - name: Run tests
         run: npm run test
-      
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      
+
       - name: Release
         run: npx release-it ${{ github.event.inputs.release-type }} --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
-
+          # OIDC authentication is handled automatically by setup-node

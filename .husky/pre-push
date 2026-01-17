@@ -1,4 +1,5 @@
 # Lint/format check before pushing (matches CI "npm run check")
+# Note: biome check includes both lint and format checks
 npm run check
 
 # Run tests before pushing - tests MUST pass, do not skip or disable tests
@@ -6,4 +7,4 @@ npm run check
 echo "Running tests before push..."
 npm run test
 
-echo "All checks passed - pushing to remote"
+echo "✅ All checks passed - pushing to remote"
