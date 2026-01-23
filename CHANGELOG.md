@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2026-01-18
+
+### Changed
+- Migrated repository from jgentes/mcpflare to forgedapps/mcpflare
+- Updated all repository URLs, license copyright, and contact information
+
+### Other
+- Added OpenVSX registry link to installation docs for Cursor publisher verification
+
 ## [1.2.5] - 2026-01-18
 
 ### Fixed
