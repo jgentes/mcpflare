@@ -1,6 +1,6 @@
 {
   "name": "mcpflare",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Use local MCP servers securely with zero-trust isolation while reducing context window token usage by up to 98%.",
   "type": "module",
   "main": "dist/server/index.js",
