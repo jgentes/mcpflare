@@ -86,10 +86,25 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.583 0L6.25 3.833 0 9.167l3.833 3.833 13.75-3.833V0z M17.583 9.167l-3.833 3.833 3.833 3.833L24 13l-6.417-3.833z M0 14.833l6.25 5.334L17.583 24V14.833L3.833 13 0 14.833z" />
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
               </svg>
               VS Code Extension
+            </a>
+            <a
+              href="https://open-vsx.org/extension/forgedapps/mcpflare"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+              </svg>
+              Open VSX Extension
             </a>
           </div>
         </div>
@@ -343,7 +358,7 @@ Result: ✅ Network access blocked`}</code>
             Ready to secure your MCP servers?
           </h2>
           <p className="mt-4 text-lg text-green-100">
-            Install the VS Code extension and get started in minutes.
+            Install the extension for VS Code or Open VSX and get started in minutes.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -358,7 +373,25 @@ Result: ✅ Network access blocked`}</code>
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border-2 border-white px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
             >
-              Install Extension
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+              </svg>
+              VS Code Extension
+            </a>
+            <a
+              href="https://open-vsx.org/extension/forgedapps/mcpflare"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-white px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+              </svg>
+              Open VSX Extension
             </a>
           </div>
         </div>

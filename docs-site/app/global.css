@@ -44,3 +44,19 @@ aside::before {
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg width='56' height='100' viewBox='0 0 56 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66z' fill='none' stroke='%234ade80' stroke-width='0.8'/%3E%3Cpath d='M28 100L0 84V50L28 34l28 16v34L28 100z' fill='none' stroke='%234ade80' stroke-width='0.8'/%3E%3C/svg%3E");
 }
+
+/* Reduce spacing after doc page title */
+[data-content] > h1:first-of-type {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Reduce spacing after description paragraph */
+[data-content] > h1:first-of-type + p {
+  margin-top: 0.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Reduce spacing for the first content element after title/description */
+[data-content] > h1:first-of-type ~ *:not(p:first-of-type) {
+  margin-top: 1rem !important;
+}
